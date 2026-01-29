@@ -87,7 +87,7 @@ const ClusterSphere = ({
     );
 };
 
-export const RegionalMap: React.FC<{ onSelect: (c: ClusterType) => void, selected: ClusterType }> = ({ onSelect, selected }) => {
+export const RegionalMap: React.FC<{ onSelect: (c: ClusterType) => void }> = ({ onSelect }) => {
     const { clusterMetrics, activeZone, setActiveZone } = useSimulation();
 
     // Map 6 clusters to 3D positions

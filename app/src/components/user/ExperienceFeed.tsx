@@ -1,72 +1,82 @@
 import React from 'react';
 import { useSimulation } from '../../context/SimulationContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hash, Clock, CheckCircle } from 'lucide-react';
 
-const generateHash = (id: string) => {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-        hash = (hash << 5) - hash + id.charCodeAt(i);
-        hash |= 0;
-    }
-    return '0x' + Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+// Helper to determine semantic color for content
+const getSemanticColor = (content: string) => {
+    if (!content) return '#9ca3af';
+    const upper = content.toUpperCase();
+    if (upper.includes('SOCIETY')) return '#10b981'; // Emerald
+    if (upper.includes('TECHNOLOGY')) return '#3b82f6'; // Blue
+    if (upper.includes('ECONOMICS')) return '#f59e0b'; // Amber
+    if (upper.includes('POLITICS')) return '#ef4444'; // Red
+    if (upper.includes('ART')) return '#d946ef'; // Fuchsia
+    if (upper.includes('SCIENCE')) return '#06b6d4'; // Cyan
+    return '#9ca3af'; // Gray default
 };
 
 export const ExperienceFeed: React.FC = () => {
-    const { logs } = useSimulation();
-    // Filter logs for User_42 only to build "Personal Ledger"
-    const userLogs = logs.filter(l => l.userId === 'User_42');
+    const { logs, currentUser } = useSimulation();
+
+    // Filter and Reverse logs to show newest first
+    const userLogs = logs
+        .filter(log => log.userId === currentUser.id || log.userId === currentUser.name)
+        .reverse();
 
     return (
-        <div className="w-full h-full flex flex-col glass-panel rounded-2xl overflow-hidden relative">
-            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/40">
-                <h3 className="text-white font-bold flex items-center gap-2">
-                    <Clock size={16} className="text-blue-400" />
-                    Experience Ledger
-                </h3>
-                <span className="text-xs font-mono text-gray-500">BLOCK_HEIGHT: {logs.length}</span>
+        <div className="flex flex-col gap-1 relative min-h-[200px]">
+            {/* Background Scanline Loop for the entire feed container */}
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-10">
+                <div className="w-full h-[20px] bg-blue-500/20 blur-md absolute animate-scan-fast top-0"></div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 scrollbar-hide space-y-1">
-                <AnimatePresence initial={false}>
-                    {userLogs.length === 0 ? (
-                        <div className="text-center p-8 text-gray-600 italic">No verified events recorded yet.</div>
-                    ) : (
-                        userLogs.map((log) => (
-                            <motion.div
-                                key={log.id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="group flex items-center justify-between p-3 rounded hover:bg-white/5 border border-transparent hover:border-white/10 transition-all cursor-crosshair"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded bg-blue-500/10 text-blue-400 font-mono text-xs">
-                                        {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
-                                    </div>
-                                    <div>
-                                        <div className="text-white text-sm font-medium">{log.cluster} Interaction</div>
-                                        <div className="text-gray-500 text-xs font-mono flex items-center gap-1">
-                                            <Hash size={10} />
-                                            {generateHash(log.id)} • Zone: {log.zone.split('_').pop()}
-                                        </div>
-                                    </div>
-                                </div>
+            <AnimatePresence initial={false}>
+                {userLogs.map((log) => {
+                    // Use cluster or detail for color source
+                    const semanticColor = getSemanticColor(log.cluster || log.topic || '');
+                    const logId = log.timestamp.toString().slice(-3); // Fake ID from timestamp
 
-                                <div className="flex items-center gap-2">
-                                    <div className="text-right">
-                                        <span className="block text-emerald-400 text-xs font-bold">+15 XP</span>
-                                        <span className="block text-gray-600 text-[10px] uppercase">{log.method}</span>
-                                    </div>
-                                    <CheckCircle size={14} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                            </motion.div>
-                        ))
-                    )}
-                </AnimatePresence>
-            </div>
+                    return (
+                        <motion.div
+                            key={`${log.timestamp}-${log.action}-${logId}`}
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            className="w-full flex items-baseline gap-2 text-[9px] font-mono border-b border-white/5 pb-1 relative group hover:bg-white/5 pl-1 transition-colors"
+                        >
+                            {/* Timestamp */}
+                            <span className="text-gray-600 shrink-0">
+                                {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
+                            </span>
 
-            {/* Footer / Gradient fade */}
-            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black to-transparent pointer-events-none" />
+                            {/* Packet Data */}
+                            <div className="flex-1 truncate flex items-center gap-1">
+                                <span className="text-gray-500 font-bold shrink-0">[LOG_{logId}]</span>
+                                <span className="text-gray-400 shrink-0">&gt;</span>
+                                <span className="text-white font-bold shrink-0">{log.action.toUpperCase()}</span>
+                                <span className="text-gray-600 shrink-0">//</span>
+
+                                <span style={{ color: semanticColor, textShadow: `0 0 5px ${semanticColor}40` }}>
+                                    {log.topic || log.cluster}
+                                </span>
+                            </div>
+
+                            {/* Signal Strength (Randomized visual) */}
+                            <div className="flex gap-[1px] opacity-30 group-hover:opacity-100">
+                                <div className="w-0.5 h-1.5 bg-current" style={{ backgroundColor: semanticColor }}></div>
+                                <div className="w-0.5 h-2 bg-current" style={{ backgroundColor: semanticColor }}></div>
+                                <div className="w-0.5 h-1 bg-current" style={{ backgroundColor: semanticColor }}></div>
+                            </div>
+                        </motion.div>
+                    );
+                })}
+            </AnimatePresence>
+
+            {userLogs.length === 0 && (
+                <div className="text-center py-10 text-[10px] text-gray-700 font-mono animate-pulse">
+                    AWAITING TELEMETRY STREAM...
+                </div>
+            )}
         </div>
     );
 };

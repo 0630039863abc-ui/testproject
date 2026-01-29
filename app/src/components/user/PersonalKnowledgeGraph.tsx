@@ -20,7 +20,13 @@ export const PersonalKnowledgeGraph: React.FC<ComponentProps> = ({ onNodeClick }
     const graphData = useMemo(() => {
         const nodes: any[] = [];
         const links: any[] = [];
-        const clusters = Object.keys(CLUSTER_TOPICS);
+        const activeClusters = Object.keys(CLUSTER_TOPICS);
+        const inactiveClusters = [
+            'Biology', 'Psychology', 'Philosophy', 'Security', 'Logistics',
+            'Ecology', 'Information', 'Health', 'Exploration', 'Education',
+            'Justice', 'Communication', 'Infrastructure', 'Intelligence', 'Ontology'
+        ];
+        const allClusters = [...activeClusters, ...inactiveClusters];
 
         // Seeded pseudo-random number generator for deterministic chaos
         const seededRandom = (seed: number) => {
@@ -35,8 +41,9 @@ export const PersonalKnowledgeGraph: React.FC<ComponentProps> = ({ onNodeClick }
         const spreadZ = 400;  // Depth spread
         const offsetX = -250; // Shift left to center within left panel
 
-        clusters.forEach((clusterName, index) => {
+        allClusters.forEach((clusterName: any, index: number) => {
             const isActive = activeZone === clusterName;
+            const isInactive = inactiveClusters.includes(clusterName);
 
             // Generate pseudo-random position based on cluster index
             // Using multiple seeds for x, y, z to create organic distribution
@@ -55,6 +62,7 @@ export const PersonalKnowledgeGraph: React.FC<ComponentProps> = ({ onNodeClick }
                 group: 'cluster',
                 val: isActive ? 40 : 30, // Pulse size if active
                 color: getClusterColor(clusterName),
+                inactive: isInactive,
                 fx: x, fy: y, fz: z // FIXED POSITION - NO PHYSICS
             });
         });
@@ -219,6 +227,23 @@ export const PersonalKnowledgeGraph: React.FC<ComponentProps> = ({ onNodeClick }
                         opacity: 0.9
                     });
                     const sphere = new THREE.Mesh(geometry, material);
+
+                    // Add wireframe for inactive clusters to give them a "locked" look
+                    if (node.inactive) {
+                        const wireframeGeometry = new THREE.SphereGeometry(node.val * 0.22, 16, 16);
+                        const wireframeMaterial = new THREE.MeshBasicMaterial({
+                            color: '#ffffff',
+                            wireframe: true,
+                            transparent: true,
+                            opacity: 0.1
+                        });
+                        const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
+                        group.add(wireframe);
+
+                        material.opacity = 0.4;
+                        material.emissiveIntensity = 0.2;
+                    }
+
                     group.add(sphere);
 
                     // Text Label

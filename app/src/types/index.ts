@@ -1,12 +1,10 @@
-export type ClusterType = 'Science' | 'Technology' | 'Economics' | 'Society' | 'Politics' | 'Art';
+export type ClusterType =
+  | 'Science' | 'Technology' | 'Economics' | 'Society' | 'Politics' | 'Art'
+  | 'Biology' | 'Psychology' | 'Philosophy' | 'Security' | 'Logistics'
+  | 'Ecology' | 'Information' | 'Health' | 'Exploration' | 'Education'
+  | 'Justice' | 'Communication' | 'Infrastructure' | 'Intelligence' | 'Ontology';
 
-export interface UserStats {
-  power: number;
-  agility: number;
-  intel: number;
-  mind: number;
-  spirit: number;
-}
+export type UserStats = Record<ClusterType, number>;
 
 export interface UserData {
   id: string;

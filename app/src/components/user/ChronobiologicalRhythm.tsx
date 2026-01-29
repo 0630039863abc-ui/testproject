@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
 import { Clock } from 'lucide-react';
-import { getClusterColor } from '../../utils/clusterColors';
+
 
 export const ChronobiologicalRhythm: React.FC = () => {
     const { logs, currentUser } = useSimulation();

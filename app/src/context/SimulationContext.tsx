@@ -187,7 +187,7 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
 
     const toggleSimulation = () => setIsPlaying(prev => !prev);
 
-    const addExternalConnection = (source: string) => {
+    const addExternalConnection = (_source: string) => {
         // ... kept same
     };
 

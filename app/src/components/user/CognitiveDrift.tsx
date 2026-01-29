@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useSimulation } from '../../context/SimulationContext';
-import { TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
+import { TrendingDown, Zap } from 'lucide-react';
 import { getClusterColor } from '../../utils/clusterColors';
 
 export const CognitiveDrift: React.FC = () => {

@@ -8,7 +8,7 @@ import { AppHeader } from '../layout/AppHeader';
 import { calculateArchetype } from '../../utils/archetypeLogic';
 import { useSimulation } from '../../context/SimulationContext';
 import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
-import { Star, User, Activity, Map, Lock, Cpu, Brain, Zap, ArrowRight, MapPin, Grid } from 'lucide-react';
+import { Star, Cpu, Brain, Grid } from 'lucide-react';
 
 interface UserDashboardProps {
     currentView: 'physical' | 'user' | 'admin';
@@ -203,7 +203,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
 
                             <div className="aspect-[4/3] bg-red-900/[0.05] border border-red-500/20 flex flex-col items-center justify-center relative opacity-60">
                                 <div className="text-[7px] text-red-500/50 font-mono mb-1 absolute top-1 right-1">SL03</div>
-                                <Lock size={12} className="text-red-500/70 mb-1" />
                                 <div className="text-red-500/70 text-[8px] font-mono tracking-tight text-center leading-none text-glow-red">LOCKED</div>
                             </div>
                         </div>

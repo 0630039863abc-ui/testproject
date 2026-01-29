@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { X, MapPin, Calendar, Clock, Navigation } from 'lucide-react';
 
 interface EventMapModalProps {

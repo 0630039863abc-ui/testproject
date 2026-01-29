@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, Cpu, Brain, Database, ShieldCheck } from 'lucide-react';
+import { Lock, Cpu, Brain } from 'lucide-react';
 
 export const PrivilegesBlock: React.FC = () => {
     // Mock Data for Progression

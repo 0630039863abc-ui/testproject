@@ -1,6 +1,6 @@
+// No motion/AnimatePresence needed here if not used
 import React from 'react';
 import { Scan, Activity } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 // Mock Data for "Discovery Vectors"
 const vectors = [

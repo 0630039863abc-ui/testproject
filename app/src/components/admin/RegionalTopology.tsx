@@ -90,29 +90,29 @@ export const RegionalTopology: React.FC<{ onSelect: (c: ClusterType) => void; se
 
                 <ClusterNode
                     position={[4, 2, 0]}
-                    label="Creative"
-                    {...getNodeProps('Creative', 1.2)}
+                    label="Technology"
+                    {...getNodeProps('Technology', 1.2)}
                     color="#8B5CF6"
-                    active={selected === 'Creative'}
-                    onClick={() => onSelect('Creative')}
+                    active={selected === 'Technology'}
+                    onClick={() => onSelect('Technology')}
                 />
 
                 <ClusterNode
                     position={[-4, -3, 0]}
-                    label="Social"
-                    {...getNodeProps('Social', 1.3)}
+                    label="Economics"
+                    {...getNodeProps('Economics', 1.3)}
                     color="#F59E0B"
-                    active={selected === 'Social'}
-                    onClick={() => onSelect('Social')}
+                    active={selected === 'Economics'}
+                    onClick={() => onSelect('Economics')}
                 />
 
                 <ClusterNode
                     position={[4, -3, 0]}
-                    label="Bio"
-                    {...getNodeProps('Bio', 1.4)}
+                    label="Art"
+                    {...getNodeProps('Art', 1.4)}
                     color="#10B981"
-                    active={selected === 'Bio'}
-                    onClick={() => onSelect('Bio')}
+                    active={selected === 'Art'}
+                    onClick={() => onSelect('Art')}
                 />
 
                 <EffectComposer>

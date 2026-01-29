@@ -87,7 +87,6 @@ export const DomainHeatmap: React.FC = () => {
                                 position={cell.position}
                                 color={cell.color}
                                 size={cell.size}
-                                label={cell.name}
                                 intensity={cell.intensity}
                             />
                         ))}

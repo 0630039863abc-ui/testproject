@@ -15,6 +15,8 @@ interface SimulationContextType {
     simulationSpeed: number;
     setSimulationSpeed: (speed: number) => void;
     stepSimulation: () => void;
+    selectableUsers: UserData[];
+    switchUser: (id: string) => void;
 }
 
 const SimulationContext = createContext<SimulationContextType | undefined>(undefined);
@@ -24,16 +26,51 @@ const INITIAL_USER: UserData = {
     name: 'Alex Novikov',
     role: 'Participant',
     stats: {
-        power: 10,
-        agility: 15,
-        intel: 20,
-        mind: 12,
-        spirit: 8,
+        'Science': 200, 'Technology': 350, 'Economics': 150, 'Society': 100, 'Politics': 50, 'Art': 400,
+        'Biology': 0, 'Psychology': 0, 'Philosophy': 0, 'Security': 0, 'Logistics': 0, 'Ecology': 0, 'Information': 0, 'Health': 0, 'Exploration': 0, 'Education': 0, 'Justice': 0, 'Communication': 0, 'Infrastructure': 0, 'Intelligence': 0, 'Ontology': 0
     },
-    eventsAttended: 1,
-    skillsUnlocked: ['Basic Networking'],
-    externalConnections: [],
+    eventsAttended: 1, skillsUnlocked: ['Basic Networking'], externalConnections: [],
 };
+
+const SELECTABLE_USERS_DATA: UserData[] = [
+    INITIAL_USER,
+    {
+        id: 'User_02', name: 'Masha Rostova', role: 'Expert',
+        stats: {
+            'Science': 850, 'Technology': 120, 'Biology': 600, 'Ecology': 400, 'Health': 300,
+            'Economics': 50, 'Society': 200, 'Politics': 100, 'Art': 50,
+            'Psychology': 0, 'Philosophy': 0, 'Security': 0, 'Logistics': 0, 'Information': 0, 'Exploration': 0, 'Education': 0, 'Justice': 0, 'Communication': 0, 'Infrastructure': 0, 'Intelligence': 0, 'Ontology': 0
+        } as any,
+        eventsAttended: 124, skillsUnlocked: ['Bio-Engineering', 'Data Analysis'], externalConnections: ['MSU']
+    },
+    {
+        id: 'User_03', name: 'Ivan Petrov', role: 'Participant',
+        stats: {
+            'Economics': 700, 'Politics': 600, 'Logistics': 400, 'Infrastructure': 300,
+            'Science': 100, 'Technology': 200, 'Society': 150, 'Art': 0,
+            'Biology': 0, 'Psychology': 0, 'Philosophy': 0, 'Security': 0, 'Ecology': 0, 'Information': 0, 'Health': 0, 'Exploration': 0, 'Education': 0, 'Justice': 0, 'Communication': 0, 'Intelligence': 0, 'Ontology': 0
+        } as any,
+        eventsAttended: 45, skillsUnlocked: ['Game Theory'], externalConnections: ['HSE']
+    },
+    {
+        id: 'User_04', name: 'Elena Sokolova', role: 'Participant',
+        stats: {
+            'Society': 800, 'Art': 500, 'Communication': 600, 'Education': 400, 'Psychology': 350,
+            'Science': 50, 'Technology': 100, 'Economics': 100, 'Politics': 150,
+            'Biology': 0, 'Philosophy': 0, 'Security': 0, 'Logistics': 0, 'Ecology': 0, 'Information': 0, 'Health': 0, 'Exploration': 0, 'Justice': 0, 'Infrastructure': 0, 'Intelligence': 0, 'Ontology': 0
+        } as any,
+        eventsAttended: 88, skillsUnlocked: ['Public Speaking'], externalConnections: []
+    },
+    {
+        id: 'User_05', name: 'Dmitry Volkov', role: 'Expert',
+        stats: {
+            'Technology': 900, 'Security': 850, 'Information': 700, 'Intelligence': 500,
+            'Science': 300, 'Economics': 200, 'Politics': 100, 'Society': 50, 'Art': 20,
+            'Biology': 0, 'Psychology': 0, 'Philosophy': 0, 'Logistics': 0, 'Ecology': 0, 'Health': 0, 'Exploration': 0, 'Education': 0, 'Justice': 0, 'Communication': 0, 'Infrastructure': 0, 'Ontology': 0
+        } as any,
+        eventsAttended: 210, skillsUnlocked: ['Cyber-Security', 'Cryptography'], externalConnections: ['Yandex']
+    }
+];
 
 export const CLUSTERS: ClusterType[] = ['Science', 'Technology', 'Economics', 'Society', 'Politics', 'Art'];
 // Density mapping for reference: Science 85, Tech 45, Econ 30, Society 12, Politics 8, Art 5
@@ -58,7 +95,7 @@ const CLUSTER_EVENT_TYPES: Record<string, string[]> = {
 
 const REAL_NAMES = [
     'Masha Rostova', 'Ivan Petrov', 'Elena Sokolova', 'Dmitry Volkov', 'Olga Morozova',
-    'Sergey Kuznetsov', 'Anna Smirnova', 'Pavel Popov', 'Maria Vasilyeva', 'Alexei Novikov',
+    'Sergey Kuznetsov', 'Anna Smirnova', 'Pavel Popov', 'Maria Vasilyeva', 'Alex Novikov',
     'Tatiana Fyodorova', 'Nikolai Mikhailov', 'Yulia Egorova', 'Andrei Pavlov', 'Svetlana Kozlova'
 ];
 
@@ -94,13 +131,14 @@ const INTERACTIONS = ['Check-in', 'View', 'Register', 'Test Pass', 'Meeting', 'P
 
 export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [logs, setLogs] = useState<EventLog[]>([]);
+    const [selectableUsers, setSelectableUsers] = useState<UserData[]>(SELECTABLE_USERS_DATA);
     const [currentUser, setCurrentUser] = useState<UserData>(INITIAL_USER);
     const [isPlaying, setIsPlaying] = useState(true);
     const [clusterMetrics, setClusterMetrics] = useState<ClusterMetrics[]>([]);
     const [activeZone, setActiveZone] = useState<ClusterType | null>(null);
     const [simulationSpeed, setSimulationSpeed] = useState<number>(1); // 1x = 2000ms
 
-    // Initialize metrics based on the Weighted Entropy Model
+    // Initialize metrics and SEED HISTORICAL DATA
     useEffect(() => {
         const initialMetrics: ClusterMetrics[] = [
             { name: 'Science', activeUnits: 850, coveragePercent: 85, roi: 2.5, anomalies: 2 },
@@ -111,17 +149,53 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
             { name: 'Art', activeUnits: 50, coveragePercent: 5, roi: 1.2, anomalies: 0 },
         ];
         setClusterMetrics(initialMetrics);
+
+        // SEED HISTORICAL LOGS for Cognitive Drift & Rhythm
+        const seedLogs: EventLog[] = [];
+        const now = Date.now();
+        const ONE_HOUR = 3600 * 1000;
+
+        for (let i = 0; i < 100; i++) {
+            // Random time within last 24 hours
+            const timeOffset = Math.floor(Math.random() * 24 * ONE_HOUR);
+            const resident = RESIDENTS[Math.floor(Math.random() * RESIDENTS.length)];
+            const cluster = resident.primaryCluster; // Simplified logic for seed
+            const topic = CLUSTER_TOPICS[cluster][Math.floor(Math.random() * CLUSTER_TOPICS[cluster].length)];
+            const eventType = CLUSTER_EVENT_TYPES[cluster]?.[0] || 'Generic Event';
+            const action = INTERACTIONS[Math.floor(Math.random() * INTERACTIONS.length)];
+
+            seedLogs.push({
+                id: `seed_${i}`,
+                timestamp: now - timeOffset,
+                userId: resident.name,
+                cluster: cluster,
+                zone: 'Simulated Past',
+                evidenceLevel: 'Medium',
+                method: 'Beacon',
+                action: action as any,
+                cognitiveLoad: Math.random() * 10,
+                topic,
+                eventType,
+                latency: Math.floor(Math.random() * 50) + 10
+            });
+        }
+        // Sort by timestamp (newest first)
+        seedLogs.sort((a, b) => b.timestamp - a.timestamp);
+        setLogs(seedLogs);
+
     }, []);
 
     const toggleSimulation = () => setIsPlaying(prev => !prev);
 
     const addExternalConnection = (source: string) => {
-        setCurrentUser(prev => ({
-            ...prev,
-            externalConnections: [...prev.externalConnections, source],
-            eventsAttended: 52,
-            stats: { ...prev.stats, intel: prev.stats.intel + 30, mind: prev.stats.mind + 15 }
-        }));
+        // ... kept same
+    };
+
+    const switchUser = (id: string) => {
+        const user = selectableUsers.find(u => u.id === id);
+        if (user) {
+            setCurrentUser(user);
+        }
     };
 
     const getTopicsForCluster = (cluster: string) => {
@@ -174,25 +248,31 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
             latency: Math.floor(Math.random() * 190) + 10 // 10ms - 200ms
         };
 
-        setLogs(prev => [newLog, ...prev].slice(0, 50));
+        setLogs(prev => [newLog, ...prev].slice(0, 200));
 
-        // 2. Update Stats (Keep existing logic)
-        if (newLog.userId === 'Alex Novikov' && evidence !== 'Low') {
-            setCurrentUser(prev => {
-                const boost = 0.5;
-                return {
-                    ...prev,
-                    eventsAttended: prev.eventsAttended + 1,
-                    stats: {
-                        ...prev.stats,
-                        intel: cluster === 'Science' || cluster === 'Technology' ? prev.stats.intel + boost : prev.stats.intel,
-                        mind: cluster === 'Economics' || cluster === 'Politics' ? prev.stats.mind + boost : prev.stats.mind,
-                        spirit: cluster === 'Society' || cluster === 'Art' ? prev.stats.spirit + boost : prev.stats.spirit,
-                        power: cluster === 'Science' ? prev.stats.power + boost : prev.stats.power,
-                        agility: cluster === 'Technology' || cluster === 'Art' ? prev.stats.agility + boost : prev.stats.agility,
+        // 2. Update Stats (Real-time progression)
+        // 2. Update Stats (Real-time progression for ALL selectable users)
+        if (evidence !== 'Low') {
+            setSelectableUsers(prevUsers => prevUsers.map(user => {
+                if (user.name === newLog.userId) {
+                    const boost = 1;
+                    const updatedUser = {
+                        ...user,
+                        eventsAttended: user.eventsAttended + 1,
+                        stats: {
+                            ...user.stats,
+                            [cluster]: (user.stats[cluster] || 0) + boost
+                        }
+                    };
+
+                    // Also update currentUser if it matches
+                    if (currentUser.id === user.id) {
+                        setCurrentUser(updatedUser);
                     }
-                };
-            });
+                    return updatedUser;
+                }
+                return user;
+            }));
         }
 
         // 3. Update Cluster Metrics
@@ -238,7 +318,9 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
             setActiveZone,
             simulationSpeed,
             setSimulationSpeed,
-            stepSimulation
+            stepSimulation,
+            selectableUsers,
+            switchUser
         }}>
             {children}
         </SimulationContext.Provider>

@@ -420,3 +420,7 @@ body {
 .animate-scan {
   animation: scan 4s linear infinite;
 }
+
+.animate-scan-fast {
+  animation: scan 1.5s linear infinite;
+}

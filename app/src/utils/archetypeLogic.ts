@@ -1,4 +1,8 @@
-export type ClusterName = 'Science' | 'Technology' | 'Economics' | 'Society' | 'Politics' | 'Art';
+export type ClusterName =
+    | 'Science' | 'Technology' | 'Economics' | 'Society' | 'Politics' | 'Art'
+    | 'Biology' | 'Psychology' | 'Philosophy' | 'Security' | 'Logistics'
+    | 'Ecology' | 'Information' | 'Health' | 'Exploration' | 'Education'
+    | 'Justice' | 'Communication' | 'Infrastructure' | 'Intelligence' | 'Ontology';
 
 interface Archetype {
     title: string;
@@ -43,4 +47,12 @@ export const calculateArchetype = (stats: any): Archetype => {
         title: `Lead ${top1} Expert`,
         description: `Focused on deep domain study of ${top1}.`
     };
+};
+
+export const getDominantCluster = (stats: Record<string, number>): ClusterName => {
+    const entries = Object.entries(stats);
+    if (entries.length === 0) return 'Science';
+
+    const sorted = entries.sort(([, a], [, b]) => b - a);
+    return sorted[0][0] as ClusterName;
 };

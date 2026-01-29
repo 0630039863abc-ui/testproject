@@ -28,11 +28,11 @@ export const SkillMatrix: React.FC = () => {
     const { currentUser } = useSimulation();
 
     const data = [
-        { subject: 'Power', A: currentUser.stats.power, fullMark: 100 },
-        { subject: 'Agility', A: currentUser.stats.agility, fullMark: 100 },
-        { subject: 'Intel', A: currentUser.stats.intel, fullMark: 100 },
-        { subject: 'Mind', A: currentUser.stats.mind, fullMark: 100 },
-        { subject: 'Spirit', A: currentUser.stats.spirit, fullMark: 100 },
+        { subject: 'Tech', A: currentUser.stats.Technology, fullMark: 100 },
+        { subject: 'Science', A: currentUser.stats.Science, fullMark: 100 },
+        { subject: 'Econ', A: currentUser.stats.Economics, fullMark: 100 },
+        { subject: 'Society', A: currentUser.stats.Society, fullMark: 100 },
+        { subject: 'Art', A: currentUser.stats.Art, fullMark: 100 },
     ];
 
     return (

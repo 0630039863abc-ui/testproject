@@ -1,0 +1,268 @@
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import ForceGraph3D from 'react-force-graph-3d';
+import SpriteText from 'three-spritetext';
+import { useSimulation, CLUSTER_TOPICS } from '../../context/SimulationContext';
+import * as THREE from 'three';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { getClusterColor } from '../../utils/clusterColors';
+
+interface ComponentProps {
+    onNodeClick: (node: any) => void;
+}
+
+export const PersonalKnowledgeGraph: React.FC<ComponentProps> = ({ onNodeClick }) => {
+    const { clusterMetrics, activeZone, setActiveZone } = useSimulation();
+    const fgRef = useRef<any>(null);
+    const [activeTopic, setActiveTopic] = useState<string | null>(null);
+
+    // CHAOTIC NEURON-LIKE LAYOUT CONSTRUCTION
+    // Pseudo-random 3D positioning that mimics neural network structure
+    const graphData = useMemo(() => {
+        const nodes: any[] = [];
+        const links: any[] = [];
+        const clusters = Object.keys(CLUSTER_TOPICS);
+
+        // Seeded pseudo-random number generator for deterministic chaos
+        const seededRandom = (seed: number) => {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        };
+
+        // 1. Position Clusters in CHAOTIC 3D space (neuron-like)
+        // Distribution parameters optimized for DUAL-SCREEN layout
+        const spreadX = 500;  // Horizontal spread (optimized for left panel)
+        const spreadY = 700;  // Vertical spread (increased for tall viewport)
+        const spreadZ = 400;  // Depth spread
+        const offsetX = -250; // Shift left to center within left panel
+
+        clusters.forEach((clusterName, index) => {
+            const isActive = activeZone === clusterName;
+
+            // Generate pseudo-random position based on cluster index
+            // Using multiple seeds for x, y, z to create organic distribution
+            const seed = index * 123.456; // Base seed
+
+            const baseX = (seededRandom(seed + 1) - 0.5) * spreadX;
+            const x = baseX + offsetX;
+            const y = (seededRandom(seed + 2) - 0.5) * spreadY;
+
+            // Subtle depth gradient: clusters closer to right edge are slightly forward
+            const depthGradient = (baseX / spreadX) * 50; // -25 to +25
+            const z = ((seededRandom(seed + 3) - 0.5) * spreadZ) + depthGradient;
+
+            nodes.push({
+                id: clusterName,
+                group: 'cluster',
+                val: isActive ? 40 : 30, // Pulse size if active
+                color: getClusterColor(clusterName),
+                fx: x, fy: y, fz: z // FIXED POSITION - NO PHYSICS
+            });
+        });
+
+        // Add subtle connections between nearby clusters (neural synapses)
+        // This creates the "brain-like" web effect
+        const clusterNodes = nodes.filter(n => n.group === 'cluster');
+        clusterNodes.forEach((node1, i) => {
+            clusterNodes.forEach((node2, j) => {
+                if (i < j) { // Avoid duplicate connections
+                    const dx = node1.fx - node2.fx;
+                    const dy = node1.fy - node2.fy;
+                    const dz = node1.fz - node2.fz;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    // Connect only if clusters are relatively close (creates sparse network)
+                    if (distance < 450) { // Increased threshold for larger spread
+                        links.push({
+                            source: node1.id,
+                            target: node2.id,
+                            type: 'neural',
+                            distance: distance
+                        });
+                    }
+                }
+            });
+        });
+
+        // 2. If a cluster is active, show its Topics in a STAR around it
+        if (activeZone && CLUSTER_TOPICS[activeZone]) {
+            const topics = CLUSTER_TOPICS[activeZone];
+            const clusterNode = nodes.find(n => n.id === activeZone);
+
+            if (clusterNode) {
+                const radius = 200; // Distance from cluster center (increased for larger scale)
+                const angleStep = (2 * Math.PI) / topics.length;
+
+                topics.forEach((topic, i) => {
+                    const angle = i * angleStep;
+                    // Position in a ring on the XY plane relative to cluster
+                    const tx = clusterNode.fx + (radius * Math.cos(angle));
+                    const ty = clusterNode.fy + (radius * Math.sin(angle));
+                    const tz = 0;
+
+                    nodes.push({
+                        id: topic,
+                        group: 'topic',
+                        val: 10,
+                        color: getClusterColor(activeZone),
+                        parent: activeZone,
+                        fx: tx, fy: ty, fz: tz // FIXED POSITION
+                    });
+
+                    links.push({
+                        source: activeZone,
+                        target: topic,
+                        type: 'star'
+                    });
+
+                    // 3. If a Topic is active, show Events as Satellites around IT
+                    if (activeTopic === topic) {
+                        const eventTypes = ['Symposium', 'Workshop', 'Lecture', 'Hackathon', 'Panel'];
+                        const eventCount = 5;
+                        const subRadius = 60;
+                        const subAngleStep = (2 * Math.PI) / eventCount;
+
+                        for (let j = 0; j < eventCount; j++) {
+                            const subAngle = j * subAngleStep;
+                            const ex = tx + (subRadius * Math.cos(subAngle));
+                            const ey = ty + (subRadius * Math.sin(subAngle));
+                            const ez = 50; // Pop out in Z
+
+                            const eventName = `${topic} ${eventTypes[j % eventTypes.length]}`;
+                            const eventId = `Event_${topic}_${j}`;
+
+                            nodes.push({
+                                id: eventId,
+                                name: eventName, // Display Name
+                                group: 'event',
+                                val: 5,
+                                color: '#ffffff',
+                                fx: ex, fy: ey, fz: ez
+                            });
+
+                            links.push({
+                                source: topic,
+                                target: eventId,
+                                type: 'satellite'
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+        return { nodes, links };
+    }, [clusterMetrics, activeZone, activeTopic]);
+
+    // Apply Glow Effect (Bloom)
+    useEffect(() => {
+        if (fgRef.current) {
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                0.4, // strength (Reduced from 1.5)
+                0.2, // radius (Reduced)
+                0.9  // threshold (Higher threshold = less glow)
+            );
+            fgRef.current.postProcessingComposer().addPass(bloomPass);
+
+            // Adjust camera alignment to see the flat layout better
+            fgRef.current.cameraPosition({ x: 0, y: 0, z: 800 });
+        }
+    }, []);
+
+    const handleNodeClick = useCallback((node: any) => {
+        if (node.group === 'cluster') {
+            // Expand Cluster - Toggle via Global Context
+            setActiveZone(activeZone === node.id ? null : node.id);
+            setActiveTopic(null); // Reset topic selection
+        } else if (node.group === 'topic') {
+            // Select Topic -> Show Events
+            setActiveTopic(prev => prev === node.id ? null : node.id);
+            // Also notify parent to show Event Card details for the topic
+            onNodeClick({ ...node, title: node.id });
+        } else if (node.group === 'event') {
+            // Click specific event
+            onNodeClick({ ...node, title: node.name });
+        }
+    }, [onNodeClick, activeZone, setActiveZone]);
+
+    return (
+        <div className="w-full h-full relative bg-[radial-gradient(ellipse_at_center,_#1B1B1B_0%,_#050505_100%)] overflow-hidden">
+            <ForceGraph3D
+                ref={fgRef}
+                graphData={graphData}
+                nodeLabel="id"
+                nodeColor="color"
+                onNodeClick={handleNodeClick}
+                linkColor={(link: any) => {
+                    if (link.type === 'neural') {
+                        // Subtle, distance-based opacity for neural connections
+                        const opacity = Math.max(0.02, 0.15 - (link.distance / 2000));
+                        return `rgba(100, 150, 255, ${opacity})`;
+                    }
+                    return 'rgba(255,255,255,0.2)'; // Topic/event connections
+                }}
+                linkWidth={(link: any) => link.type === 'neural' ? 0.5 : 1}
+                linkOpacity={0.6}
+                backgroundColor="#050505"
+                nodeThreeObject={(node: any) => {
+                    const group = new THREE.Group();
+
+                    // Glow Sphere
+                    const geometry = new THREE.SphereGeometry(node.val ? node.val * 0.2 : 2, 32, 32);
+                    const material = new THREE.MeshPhysicalMaterial({
+                        color: node.color,
+                        metalness: 0.1,
+                        roughness: 0.1,
+                        emissive: node.color,
+                        emissiveIntensity: node.group === 'cluster' ? 2.0 : 0.5,
+                        transparent: true,
+                        opacity: 0.9
+                    });
+                    const sphere = new THREE.Mesh(geometry, material);
+                    group.add(sphere);
+
+                    // Text Label
+                    const labelText = node.id.replace(/_/g, ' '); // Clean up IDs
+                    const sprite = new SpriteText(labelText);
+                    sprite.color = '#fff';
+                    sprite.textHeight = node.group === 'cluster' ? 8 : (node.group === 'topic' ? 4 : 2);
+                    sprite.position.y = node.val * 0.2 + (node.group === 'cluster' ? 8 : 4);
+                    sprite.fontFace = 'JetBrains Mono';
+
+                    // Only show labels for Clusters and Topics (hide small event labels to reduce clutter?)
+                    if (node.group !== 'event') {
+                        group.add(sprite);
+                    }
+
+                    return group;
+                }}
+                // DISABLE ALL FORCES (Static Layout)
+                enableNodeDrag={false}
+                d3AlphaDecay={0}
+                d3VelocityDecay={0}
+                cooldownTicks={0} // Do not run simulation engine
+                onEngineStop={() => { }}
+            />
+
+            {/* Legend / Breadcrumbs */}
+            <div className="absolute bottom-6 left-6 pointer-events-none">
+                <div className="flex flex-col items-start gap-1">
+                    {activeZone && (
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-300">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getClusterColor(activeZone) }}></div>
+                            <span className="text-lg font-bold text-white tracking-widest uppercase font-mono">{'>'} {activeZone}</span>
+                        </div>
+                    )}
+                    {activeTopic && (
+                        <div className="flex items-center gap-2 pl-4 animate-in fade-in slide-in-from-left-4 duration-300 delay-75">
+                            <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                            <span className="text-sm text-gray-400 font-mono">{'>'} {activeTopic}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Color function moved to utils/clusterColors.ts

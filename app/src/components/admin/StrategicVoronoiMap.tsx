@@ -1,0 +1,275 @@
+import React, { useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Text, Float } from '@react-three/drei';
+import { Delaunay } from 'd3-delaunay';
+import * as THREE from 'three';
+import { CLUSTER_COLORS } from '../../utils/clusterColors';
+import { useSimulation } from '../../context/SimulationContext';
+
+type MapPoint = [number, number];
+
+const TechnicalCallout = ({ position, label, sublabel, align = 'left' }: any) => {
+    const points = useMemo(() => new Float32Array([0, -0.3, 0, align === 'left' ? -0.8 : 0.8, -0.3, 0]), [align]);
+    return (
+        <group position={position}>
+            <Text
+                fontSize={0.2}
+                color="#3b82f6"
+                anchorX={align as any}
+            >
+                {label.toUpperCase()}
+            </Text>
+            <Text
+                position={[0, -0.25, 0]}
+                fontSize={0.12}
+                color="white"
+                fillOpacity={0.3}
+                anchorX={align as any}
+            >
+                {sublabel.toUpperCase()}
+            </Text>
+            <line>
+                <bufferGeometry>
+                    <bufferAttribute
+                        attach="attributes-position"
+                        count={2}
+                        array={points}
+                        itemSize={3}
+                        args={[points, 3]}
+                    />
+                </bufferGeometry>
+                <lineBasicMaterial color="#3b82f6" transparent opacity={0.2} />
+            </line>
+        </group>
+    );
+};
+
+const VoronoiCell = ({ points, color, label, active, onHover, count }: any) => {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const shape = useMemo(() => {
+        const s = new THREE.Shape();
+        if (!points || points.length === 0) return s;
+        points.forEach((p: [number, number], i: number) => {
+            if (i === 0) s.moveTo(p[0], p[1]);
+            else s.lineTo(p[0], p[1]);
+        });
+        s.closePath();
+        return s;
+    }, [points]);
+
+    const lineArray = useMemo(() => {
+        if (!points || points.length === 0) return new Float32Array(0);
+        const arr = [];
+        for (const p of points) arr.push(p[0], p[1], 0.01);
+        arr.push(points[0][0], points[0][1], 0.01);
+        return new Float32Array(arr);
+    }, [points]);
+
+    const centroid = useMemo(() => {
+        if (!points || points.length === 0) return [0, 0, 0];
+        let x = 0, y = 0;
+        points.forEach((p: [number, number]) => { x += p[0]; y += p[1]; });
+        return [x / points.length, y / points.length, 0.2];
+    }, [points]);
+
+    useFrame(() => {
+        if (meshRef.current) {
+            meshRef.current.position.z = THREE.MathUtils.lerp(
+                meshRef.current.position.z,
+                active ? 0.6 : 0,
+                0.1
+            );
+        }
+    });
+
+    if (!points || points.length === 0) return null;
+
+    return (
+        <group>
+            <mesh
+                ref={meshRef}
+                onPointerOver={(e) => {
+                    e.stopPropagation();
+                    onHover(label);
+                }}
+                onPointerOut={(e) => {
+                    e.stopPropagation();
+                    onHover(null);
+                }}
+            >
+                <shapeGeometry args={[shape]} />
+                <meshStandardMaterial
+                    color={color}
+                    emissive={color}
+                    emissiveIntensity={active ? 4 : 0.3}
+                    transparent
+                    opacity={active ? 0.95 : 0.25}
+                    side={THREE.DoubleSide}
+                />
+
+                <line>
+                    <bufferGeometry>
+                        <bufferAttribute
+                            attach="attributes-position"
+                            count={points.length + 1}
+                            array={lineArray}
+                            itemSize={3}
+                            args={[lineArray, 3]}
+                        />
+                    </bufferGeometry>
+                    <lineBasicMaterial color={color} transparent opacity={active ? 1 : 0.3} />
+                </line>
+            </mesh>
+
+            {/* Persistent Data Label (Numerical) */}
+            <Text
+                position={[centroid[0], centroid[1], active ? centroid[2] + 0.6 : centroid[2]]}
+                fontSize={active ? 0.25 : 0.18}
+                color="white"
+                fillOpacity={active ? 1 : 0.4}
+                anchorX="center"
+                anchorY="middle"
+            >
+                {count}
+            </Text>
+
+            {active && (
+                <Text
+                    position={[centroid[0], centroid[1] - 0.3, 1]}
+                    fontSize={0.2}
+                    color="#3b82f6"
+                    anchorX="center"
+                    anchorY="middle"
+                >
+                    {label.toUpperCase()}
+                </Text>
+            )}
+        </group>
+    );
+};
+
+export const StrategicVoronoiMap: React.FC = () => {
+    const { clusterMetrics } = useSimulation();
+    const [hovered, setHovered] = useState<string | null>(null);
+
+    const cells = useMemo(() => {
+        const count = clusterMetrics.length;
+        if (count === 0) return [];
+
+        const width = 16;
+        const height = 12;
+
+        // Archipelago logic: Create clusters of points around "islands"
+        const points = clusterMetrics.map((_, i) => {
+            const angle = (i / count) * Math.PI * 2;
+            const r = 3.5 + Math.sin(i * 1.5) * 1.5;
+
+            // Add slight random jitter to make it look like organic islands vs a perfect circle
+            const jitterX = Math.sin(i * 31.5) * 0.8;
+            const jitterY = Math.cos(i * 24.2) * 0.8;
+
+            return [
+                Math.cos(angle) * r + jitterX,
+                Math.sin(angle) * r + jitterY
+            ] as MapPoint;
+        });
+
+        try {
+            const delaunay = Delaunay.from(points);
+            // Slightly smaller bounding box to allow islands to feel floating
+            const voronoi = delaunay.voronoi([-width / 3, -height / 3, width / 3, height / 3]);
+
+            return clusterMetrics.map((m, i) => ({
+                name: m.name,
+                points: Array.from(voronoi.cellPolygon(i) || []),
+                color: CLUSTER_COLORS[m.name] || '#ffffff',
+                intensity: m.activeUnits
+            }));
+        } catch (e) {
+            console.error('Voronoi Error:', e);
+            return [];
+        }
+    }, [clusterMetrics.length]);
+
+    const activeCell = clusterMetrics.find(m => m.name === hovered);
+
+    if (clusterMetrics.length === 0) {
+        return (
+            <div className="w-full h-full bg-[#010101] rounded-2xl overflow-hidden border border-white/5 flex flex-col items-center justify-center gap-4 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]">
+                <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                <span className="text-white/20 text-[10px] uppercase font-black tracking-widest">Docking...</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full h-full bg-[#00050a] rounded-2xl overflow-hidden border border-blue-900/10 relative group shadow-[inset_0_0_70px_rgba(0,10,20,0.9)]">
+            <div className="absolute top-5 left-6 z-10 pointer-events-none">
+                <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.6em] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_10px_#60a5fa]" />
+                    ПОНТОН: ARCHIPELAGO_v5
+                </h3>
+                <p className="text-[7px] text-blue-300/30 mt-1 font-mono uppercase tracking-[0.1em]">Fluid Domain Distribution</p>
+            </div>
+
+            <Canvas gl={{ antialias: true, alpha: true }} camera={{ position: [0, -12, 18], fov: 32 }}>
+                <OrbitControls enableZoom={false} maxPolarAngle={Math.PI / 2.3} minPolarAngle={Math.PI / 4} enablePan={false} />
+
+                <ambientLight intensity={1.5} />
+                <pointLight position={[5, 10, 10]} intensity={3} color="#60a5fa" />
+
+                <Float speed={1.2} rotationIntensity={0.05} floatIntensity={0.4}>
+                    <group rotation={[-Math.PI / 10, 0, 0]}>
+                        {cells.map((cell) => (
+                            <VoronoiCell
+                                key={cell.name}
+                                points={cell.points}
+                                color={cell.color}
+                                label={cell.name}
+                                count={cell.intensity}
+                                active={hovered === cell.name}
+                                onHover={setHovered}
+                            />
+                        ))}
+
+                        <TechnicalCallout position={[-6.5, 4, 0]} label="Wave Sync" sublabel="Channel v1.2" align="left" />
+                        <TechnicalCallout position={[6.5, 4, 0]} label="Tide Load" sublabel="Flow Entropy" align="right" />
+                        <TechnicalCallout position={[-6.5, -4, 0]} label="Anchored" sublabel="99.98% OK" align="left" />
+                        <TechnicalCallout position={[6.5, -4, 0]} label="Beacon" sublabel="Active Scan" align="right" />
+
+                        <gridHelper args={[24, 12]} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.1]}>
+                            <meshBasicMaterial color="#00ffff" transparent opacity={0.02} />
+                        </gridHelper>
+                    </group>
+                </Float>
+            </Canvas>
+
+            <div className="absolute top-5 right-6 text-right pointer-events-none">
+                <div className="text-[16px] font-black text-white tabular-nums tracking-tighter shadow-blue-500/20">
+                    {activeCell ? activeCell.activeUnits : 'IDLE'}
+                </div>
+                <div className="text-[7px] text-blue-300/30 uppercase font-black tracking-widest mt-0.5">
+                    {activeCell ? `${hovered} CAPACITY` : 'SELECT ISLAND'}
+                </div>
+            </div>
+
+            <div className="absolute bottom-5 left-6 right-6 flex justify-between items-end pointer-events-none">
+                <div className="flex gap-4">
+                    {clusterMetrics.slice(0, 5).map(m => (
+                        <div key={m.name} className="flex flex-col gap-1">
+                            <div className="w-10 h-0.5 bg-blue-900/10 overflow-hidden">
+                                <div className="h-full" style={{ width: '100%', backgroundColor: CLUSTER_COLORS[m.name] }} />
+                            </div>
+                            <span className="text-[6px] font-black text-blue-300/20 uppercase tracking-tighter">{m.name.slice(0, 3)}</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[8px] font-black text-cyan-400/80 tabular-nums uppercase tracking-widest border border-cyan-400/20 px-2 py-0.5 rounded-sm bg-cyan-900/10">STABLE_FLOW</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};

@@ -43,8 +43,10 @@ const TechnicalCallout = ({ position, label, sublabel, align = 'left' }: any) =>
     );
 };
 
-const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone, onPointerEnter, onPointerLeave }: any) => {
+const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone, onPointerEnter, onPointerLeave, pulse }: any) => {
     const meshRef = useRef<THREE.Mesh>(null);
+    const [pulseScale, setPulseScale] = useState(1);
+
     const shape = useMemo(() => {
         const s = new THREE.Shape();
         if (!points || points.length === 0) return s;
@@ -73,11 +75,15 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
 
     useFrame(() => {
         if (meshRef.current) {
-            meshRef.current.position.z = THREE.MathUtils.lerp(
-                meshRef.current.position.z,
-                active ? 0.6 : 0,
-                0.1
-            );
+            const targetZ = active ? 0.6 : 0;
+            meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, targetZ, 0.1);
+
+            // Pulse logic
+            if (pulse) {
+                setPulseScale(1.15);
+            }
+            setPulseScale(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
+            meshRef.current.scale.setScalar(pulseScale);
         }
     });
 
@@ -108,11 +114,12 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
                 <meshStandardMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={active ? 4 : 0.3}
+                    emissiveIntensity={pulse ? 8 : (active ? 4 : 0.3)}
                     transparent
-                    opacity={active ? 0.95 : 0.25}
+                    opacity={active ? 0.95 : (pulse ? 0.8 : 0.25)}
                     side={THREE.DoubleSide}
                 />
+
 
                 <line>
                     <bufferGeometry>
@@ -166,11 +173,33 @@ export const StrategicVoronoiMap: React.FC = () => {
     const { clusterMetrics } = useSimulation();
     const [hovered, setHovered] = useState<string | null>(null);
     const [activeZone, setActiveZone] = useState<string | null>(null);
+    const prevCounts = useRef<Record<string, number>>({});
+    const [pulses, setPulses] = useState<Record<string, boolean>>({});
+
+    // Track activity bursts
+    React.useEffect(() => {
+        const newPulses: Record<string, boolean> = {};
+        let hasChanges = false;
+
+        clusterMetrics.forEach(m => {
+            const prev = prevCounts.current[m.name] || 0;
+            if (m.activeUnits > prev) {
+                newPulses[m.name] = true;
+                hasChanges = true;
+            }
+            prevCounts.current[m.name] = m.activeUnits;
+        });
+
+        if (hasChanges) {
+            setPulses(newPulses);
+            const timer = setTimeout(() => setPulses({}), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [clusterMetrics]);
 
     const activeMetrics = useMemo(() => {
         return clusterMetrics.filter(m => m.activeUnits > 0);
     }, [clusterMetrics]);
-
     const cells = useMemo(() => {
         const count = activeMetrics.length;
         if (count === 0) return [];
@@ -178,14 +207,9 @@ export const StrategicVoronoiMap: React.FC = () => {
         const width = 16;
         const height = 12;
 
-        // Archipelago logic: Create clusters of points around "islands"
         const points = activeMetrics.map((_, i) => {
             const angle = (i / count) * Math.PI * 2;
-            // Radius influenced by activeUnits to make larger islands more centered?
-            // Or just keep the organic archipelago feel
             const r = 3.5 + Math.sin(i * 1.5) * 1.5;
-
-            // Add slight random jitter to make it look like organic islands vs a perfect circle
             const jitterX = Math.sin(i * 31.5) * 0.8;
             const jitterY = Math.cos(i * 24.2) * 0.8;
 
@@ -197,7 +221,6 @@ export const StrategicVoronoiMap: React.FC = () => {
 
         try {
             const delaunay = Delaunay.from(points);
-            // Slightly smaller bounding box to allow islands to feel floating
             const voronoi = delaunay.voronoi([-width / 3, -height / 3, width / 3, height / 3]);
 
             return activeMetrics.map((m, i) => ({
@@ -217,7 +240,7 @@ export const StrategicVoronoiMap: React.FC = () => {
 
     if (clusterMetrics.length === 0) {
         return (
-            <div className="w-full h-full bg-[#010101] rounded-2xl overflow-hidden border border-white/5 flex flex-col items-center justify-center gap-4 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]">
+            <div className="w-full h-full bg-[#010101] rounded-2xl overflow-hidden border border-white/5 flex flex-col items-center justify-center gap-4">
                 <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
                 <span className="text-white/20 text-[10px] uppercase font-black tracking-widest">Стыковка...</span>
             </div>
@@ -241,7 +264,6 @@ export const StrategicVoronoiMap: React.FC = () => {
 
             <Canvas gl={{ antialias: true, alpha: true }} camera={{ position: [0, -12, 18], fov: 32 }}>
                 <OrbitControls enableZoom={false} maxPolarAngle={Math.PI / 2.3} minPolarAngle={Math.PI / 4} enablePan={false} />
-
                 <ambientLight intensity={1.5} />
                 <pointLight position={[5, 10, 10]} intensity={3} color={HUD_COLORS.secondary} />
 
@@ -255,6 +277,7 @@ export const StrategicVoronoiMap: React.FC = () => {
                                 label={cell.name}
                                 count={cell.intensity}
                                 active={hovered === cell.name}
+                                pulse={pulses[cell.name]}
                                 onHover={setHovered}
                                 activeZone={activeZone}
                                 onPointerEnter={setActiveZone}
@@ -275,7 +298,7 @@ export const StrategicVoronoiMap: React.FC = () => {
             </Canvas>
 
             <div className="absolute top-5 right-6 text-right pointer-events-none">
-                <div className="text-[16px] font-black text-white tabular-nums tracking-tighter shadow-blue-500/20">
+                <div className="text-[16px] font-black text-white tabular-nums tracking-tighter">
                     {activeCell ? activeCell.activeUnits : 'ОЖИДАНИЕ'}
                 </div>
                 <div className="text-[7px] text-blue-300/30 uppercase font-black tracking-widest mt-0.5">

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
+import { useSimulation, RESIDENTS, type Resident } from '../../../entities/Simulation/model/simulationContext';
 import { CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 import { motion } from 'framer-motion';
 import { Target, AlertCircle, Zap, TrendingUp } from 'lucide-react';
@@ -20,6 +20,11 @@ export const DemographicMatrix: React.FC = () => {
             return acc;
         }, {} as Record<string, { age: number }>);
 
+        // Add internal residents to userMap for matrix calculations
+        RESIDENTS.forEach((r: Resident) => {
+            if (!userMap[r.name]) userMap[r.name] = { age: r.age };
+        });
+
         const clusters = ['Science', 'Technology', 'Economics', 'Society', 'Politics', 'Art'];
 
         return AGE_GROUPS.map(group => {
@@ -33,10 +38,10 @@ export const DemographicMatrix: React.FC = () => {
                 clusters: clusters.map(cluster => {
                     const clusterLogs = groupLogs.filter(l => l.cluster === cluster);
                     const interest = clusterLogs.length;
-                    const highLoadLogs = clusterLogs.filter(l => (l.cognitiveLoad || 0) > 7);
+                    const highLoadLogs = clusterLogs.filter(l => (l.cognitiveLoad || 0) > 6); // Lowered from 7
                     const lowEvidenceLogs = clusterLogs.filter(l => l.evidenceLevel !== 'High');
                     const potential = highLoadLogs.length > 0 ? (highLoadLogs.length / Math.max(interest, 1)) * 100 : 0;
-                    const deficit = (interest > 5 && (lowEvidenceLogs.length / interest) > 0.6);
+                    const deficit = (interest > 2 && (lowEvidenceLogs.length / interest) > 0.5); // Lowered interest threshold and ratio
 
                     return {
                         name: cluster,
@@ -88,7 +93,7 @@ export const DemographicMatrix: React.FC = () => {
                 <div className="flex flex-col gap-3">
                     {/* X-Axis Cluster Labels */}
                     <div className="grid grid-cols-6 gap-2">
-                        {matrixData[0].clusters.map(c => (
+                        {matrixData[0].clusters.map((c: any) => (
                             <div key={c.name} className="text-[8px] font-black text-white/30 uppercase text-center truncate tracking-widest">
                                 {CLUSTER_TRANSLATIONS[c.name]?.slice(0, 3) || c.name.slice(0, 3)}
                             </div>
@@ -97,9 +102,9 @@ export const DemographicMatrix: React.FC = () => {
 
                     {/* Heatmap Grid */}
                     <div className="flex-1 grid grid-rows-4 gap-2">
-                        {matrixData.map((row, rIdx) => (
+                        {matrixData.map((row: any, rIdx: number) => (
                             <div key={row.group} className="grid grid-cols-6 gap-2">
-                                {row.clusters.map((cell, cIdx) => {
+                                {row.clusters.map((cell: any, cIdx: number) => {
                                     const intensity = Math.min(cell.interest / 20, 1);
                                     const hasPotential = cell.potential > 30;
                                     const hasDeficit = cell.deficit;

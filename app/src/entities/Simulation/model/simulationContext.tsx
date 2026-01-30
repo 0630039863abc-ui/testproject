@@ -93,7 +93,7 @@ const CLUSTER_EVENT_TYPES: Record<string, string[]> = {
     'Art': ['Концептуальный Эскиз', 'Посещение Выставки', 'Эстетический Аудит', 'Философское Исследование', 'Медиа-Критика']
 };
 
-interface Resident {
+export interface Resident {
     name: string;
     primaryCluster: ClusterType;
     secondaryCluster: ClusterType;
@@ -102,12 +102,19 @@ interface Resident {
 }
 
 // Per-agent bias patterns - agents focus on 2 dominant clusters but participate in all 6
-const RESIDENTS: Resident[] = [
+export const RESIDENTS: Resident[] = [
     { name: 'Алекс Новиков', primaryCluster: 'Society', secondaryCluster: 'Art', age: 24, gender: 'Мужской' },
     { name: 'Masha Rostova', primaryCluster: 'Science', secondaryCluster: 'Technology', age: 22, gender: 'Женский' },
     { name: 'Иван Петров', primaryCluster: 'Economics', secondaryCluster: 'Politics', age: 38, gender: 'Мужской' },
     { name: 'Елена Соколова', primaryCluster: 'Society', secondaryCluster: 'Economics', age: 29, gender: 'Женский' },
     { name: 'Дмитрий Волков', primaryCluster: 'Technology', secondaryCluster: 'Science', age: 45, gender: 'Мужской' },
+    { name: 'Сергей Белов', primaryCluster: 'Science', secondaryCluster: 'Economics', age: 52, gender: 'Мужской' },
+    { name: 'Анна Кузнецова', primaryCluster: 'Art', secondaryCluster: 'Society', age: 48, gender: 'Женский' },
+    { name: 'Виктор Морозов', primaryCluster: 'Politics', secondaryCluster: 'Technology', age: 55, gender: 'Мужской' },
+    { name: 'Ольга Павлова', primaryCluster: 'Economics', secondaryCluster: 'Science', age: 21, gender: 'Женский' },
+    { name: 'Артем Громов', primaryCluster: 'Technology', secondaryCluster: 'Art', age: 33, gender: 'Мужской' },
+    { name: 'Ирина Лисицына', primaryCluster: 'Science', secondaryCluster: 'Society', age: 31, gender: 'Женский' },
+    { name: 'Павел Сорокин', primaryCluster: 'Politics', secondaryCluster: 'Economics', age: 41, gender: 'Мужской' },
 ];
 
 const EVENT_CONTEXTS = [

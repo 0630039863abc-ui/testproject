@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Float, Html } from '@react-three/drei';
 import { Delaunay } from 'd3-delaunay';
@@ -43,9 +43,67 @@ const TechnicalCallout = ({ position, label, sublabel, align = 'left' }: any) =>
     );
 };
 
+const getRandomPointInPolygon = (points: [number, number][]): [number, number] => {
+    if (points.length < 3) return [0, 0];
+
+    // Centroid
+    let cx = 0, cy = 0;
+    points.forEach(p => { cx += p[0]; cy += p[1]; });
+    cx /= points.length;
+    cy /= points.length;
+
+    // Pick a random triangle in the fan from centroid
+    const idx = Math.floor(Math.random() * (points.length - 1));
+    const p1 = points[idx];
+    const p2 = points[idx + 1];
+
+    // Random point in triangle (Barycentric)
+    let r1 = Math.random();
+    let r2 = Math.random();
+    if (r1 + r2 > 1) {
+        r1 = 1 - r1;
+        r2 = 1 - r2;
+    }
+
+    const x = cx + r1 * (p1[0] - cx) + r2 * (p2[0] - cx);
+    const y = cy + r1 * (p1[1] - cy) + r2 * (p2[1] - cy);
+
+    return [x, y];
+};
+
+const Spark = ({ position, color, onMount }: { position: [number, number, number], color: string, onMount: () => () => void }) => {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const [opacity, setOpacity] = useState(1);
+    const [scale, setScale] = useState(1);
+
+    useEffect(onMount, []);
+
+    useFrame(() => {
+        if (meshRef.current) {
+            setOpacity(prev => prev * 0.92); // Fade out opacity
+            setScale(prev => prev * 0.95); // Shrink size
+        }
+    });
+
+    return (
+        <mesh position={position} ref={meshRef} scale={scale}>
+            <sphereGeometry args={[0.08, 8, 8]} />
+            <meshStandardMaterial
+                color={color}
+                emissive={color}
+                emissiveIntensity={15}
+                transparent
+                opacity={opacity}
+            />
+            <pointLight distance={1} intensity={15 * opacity} color={color} />
+        </mesh>
+    );
+};
+
 const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone, onPointerEnter, onPointerLeave, pulse }: any) => {
     const meshRef = useRef<THREE.Mesh>(null);
-    const [pulseScale, setPulseScale] = useState(1);
+    const [sparks, setSparks] = useState<Array<{ id: number; position: [number, number, number]; color: string }>>([]);
+    const sparkId = useRef(0);
 
     const shape = useMemo(() => {
         const s = new THREE.Shape();
@@ -73,17 +131,21 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
         return [x / points.length, y / points.length, 0.2];
     }, [points]);
 
+    useEffect(() => {
+        if (pulse) {
+            const [x, y] = getRandomPointInPolygon(points);
+            const id = sparkId.current++;
+            setSparks(prev => [
+                ...prev,
+                { id, position: [x, y, 0.5], color: color }
+            ]);
+        }
+    }, [pulse, points, color]);
+
     useFrame(() => {
         if (meshRef.current) {
             const targetZ = active ? 0.6 : 0;
             meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, targetZ, 0.1);
-
-            // Pulse logic
-            if (pulse) {
-                setPulseScale(1.15);
-            }
-            setPulseScale(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
-            meshRef.current.scale.setScalar(pulseScale);
         }
     });
 
@@ -114,12 +176,11 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
                 <meshStandardMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={pulse ? 8 : (active ? 4 : 0.3)}
+                    emissiveIntensity={active ? 4 : 0.3}
                     transparent
-                    opacity={active ? 0.95 : (pulse ? 0.8 : 0.25)}
+                    opacity={active ? 0.95 : 0.25}
                     side={THREE.DoubleSide}
                 />
-
 
                 <line>
                     <bufferGeometry>
@@ -145,6 +206,21 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
                     </Html>
                 )}
             </mesh>
+
+            {sparks.map(spark => (
+                <Spark
+                    key={spark.id}
+                    position={spark.position}
+                    color={spark.color}
+                    onMount={() => {
+                        const timer = setTimeout(() => {
+                            setSparks(prev => prev.filter(s => s.id !== spark.id));
+                        }, 1000);
+                        return () => clearTimeout(timer);
+                    }}
+                />
+            ))}
+
 
             {/* Persistent Data Label (Numerical) */}
             <Text

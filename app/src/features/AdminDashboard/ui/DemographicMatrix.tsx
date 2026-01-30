@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
-import { CLUSTER_COLORS, CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
+import { CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 import { motion } from 'framer-motion';
 import { Target, AlertCircle, Zap } from 'lucide-react';
 

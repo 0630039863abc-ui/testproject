@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ClusterMetrics } from '../../../types';
 import { AlertTriangle, ShieldAlert, CheckCircle, Zap } from 'lucide-react';
+import { CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -46,6 +47,7 @@ const Heartbeat = ({ isCritical }: { isCritical: boolean }) => (
 
 export const AnomalyEngine: React.FC<AnomalyEngineProps> = ({ metrics, showAnomalies, onToggle }) => {
     const isCritical = metrics && metrics.anomalies > 5;
+    const translatedName = metrics ? (CLUSTER_TRANSLATIONS[metrics.name] || metrics.name) : '';
 
     return (
         <div className={clsx(
@@ -89,7 +91,7 @@ export const AnomalyEngine: React.FC<AnomalyEngineProps> = ({ metrics, showAnoma
                                         <div>
                                             <h4 className="text-red-400 font-bold text-[11px] uppercase tracking-wider">Предупреждение о Взломе</h4>
                                             <p className="text-red-300/50 text-[9px] mt-1 leading-relaxed">
-                                                РИСК ЦЕЛОСТНОСТИ В {metrics.name.toUpperCase()} ДОМЕНЕ.
+                                                РИСК ЦЕЛОСТНОСТИ В {translatedName.toUpperCase()} ДОМЕНЕ.
                                                 НЕКОГНИТИВНОЕ ПРИСУТСТВИЕ &gt; 15%.
                                             </p>
                                             <div className="mt-2 text-[10px] font-black text-red-500 flex items-center gap-1">

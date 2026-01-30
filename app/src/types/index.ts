@@ -9,12 +9,28 @@ export type UserStats = Record<ClusterType, number>;
 export interface UserData {
   id: string;
   name: string;
-  role: 'Participant' | 'Expert' | 'Admin';
+  role: 'Participant' | 'Expert' | 'Admin' | 'Участник' | 'Эксперт';
   stats: UserStats;
   eventsAttended: number;
   skillsUnlocked: string[];
   externalConnections: string[]; // e.g., 'Stepik', 'MSU'
 }
+
+export type EvidenceType = 'web' | 'mobile' | 'sensor' | 'platform' | 'location';
+
+export type ObservableAction =
+  | 'Просмотр анонса'
+  | 'Переход ссылке'
+  | 'Добавил календарь'
+  | 'Геовход зафиксирован'
+  | 'Регистрация скан'
+  | 'Фото сделано'
+  | 'Публикация поста'
+  | 'Чат сообщение'
+  | 'Участие трансляция'
+  | 'Тест пройден'
+  | 'Материал скачан'
+  | 'Отметка выход';
 
 export interface EventLog {
   id: string;
@@ -24,7 +40,8 @@ export interface EventLog {
   zone: string;
   evidenceLevel: 'Low' | 'Medium' | 'High';
   method: 'NFC' | 'FaceID' | 'Beacon';
-  action: 'Check-in' | 'View' | 'Register' | 'Test Pass' | 'Meeting' | 'Purchase' | 'Logout';
+  action: ObservableAction;
+  evidenceType: EvidenceType;
   cognitiveLoad?: number; // L2 signal
   topic?: string;
   eventType?: string;

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ClusterMetrics as ClusterMetricsType } from '../../../types';
-import { CLUSTER_COLORS, CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
+import { CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Users, TrendingUp, AlertTriangle, Target } from 'lucide-react';
 import clsx from 'clsx';

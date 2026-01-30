@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Navigation, MapPin, X, Clock, Layers } from 'lucide-react';
+import { Navigation, MapPin, X, Clock, Calendar } from 'lucide-react';
 import { CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 
 interface EventMapModalProps {

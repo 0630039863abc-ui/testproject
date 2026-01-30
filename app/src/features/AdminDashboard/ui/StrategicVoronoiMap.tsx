@@ -167,16 +167,22 @@ export const StrategicVoronoiMap: React.FC = () => {
     const [hovered, setHovered] = useState<string | null>(null);
     const [activeZone, setActiveZone] = useState<string | null>(null);
 
+    const activeMetrics = useMemo(() => {
+        return clusterMetrics.filter(m => m.activeUnits > 0);
+    }, [clusterMetrics]);
+
     const cells = useMemo(() => {
-        const count = clusterMetrics.length;
+        const count = activeMetrics.length;
         if (count === 0) return [];
 
         const width = 16;
         const height = 12;
 
         // Archipelago logic: Create clusters of points around "islands"
-        const points = clusterMetrics.map((_, i) => {
+        const points = activeMetrics.map((_, i) => {
             const angle = (i / count) * Math.PI * 2;
+            // Radius influenced by activeUnits to make larger islands more centered?
+            // Or just keep the organic archipelago feel
             const r = 3.5 + Math.sin(i * 1.5) * 1.5;
 
             // Add slight random jitter to make it look like organic islands vs a perfect circle
@@ -194,18 +200,18 @@ export const StrategicVoronoiMap: React.FC = () => {
             // Slightly smaller bounding box to allow islands to feel floating
             const voronoi = delaunay.voronoi([-width / 3, -height / 3, width / 3, height / 3]);
 
-            return clusterMetrics.map((m, i) => ({
+            return activeMetrics.map((m, i) => ({
                 name: m.name,
                 points: Array.from(voronoi.cellPolygon(i) || []),
                 color: CLUSTER_COLORS[m.name] || '#ffffff',
                 intensity: m.activeUnits,
-                activeUnits: m.activeUnits // Added for Html component
+                activeUnits: m.activeUnits
             }));
         } catch (e) {
             console.error('Voronoi Error:', e);
             return [];
         }
-    }, [clusterMetrics.length]);
+    }, [activeMetrics]);
 
     const activeCell = clusterMetrics.find(m => m.name === hovered);
 
@@ -217,6 +223,11 @@ export const StrategicVoronoiMap: React.FC = () => {
             </div>
         );
     }
+
+    const sortedForLegend = [...clusterMetrics]
+        .filter(m => m.activeUnits > 0)
+        .sort((a, b) => b.activeUnits - a.activeUnits)
+        .slice(0, 8);
 
     return (
         <div className="w-full h-full bg-[#00050a] rounded-2xl overflow-hidden border border-blue-900/10 relative group shadow-[inset_0_0_70px_rgba(0,10,20,0.9)]">
@@ -274,12 +285,14 @@ export const StrategicVoronoiMap: React.FC = () => {
 
             <div className="absolute bottom-5 left-6 right-6 flex justify-between items-end pointer-events-none">
                 <div className="flex gap-4">
-                    {clusterMetrics.slice(0, 5).map(m => (
+                    {sortedForLegend.map(m => (
                         <div key={m.name} className="flex flex-col gap-1">
                             <div className="w-10 h-0.5 bg-blue-900/10 overflow-hidden">
                                 <div className="h-full" style={{ width: '100%', backgroundColor: CLUSTER_COLORS[m.name] }} />
                             </div>
-                            <span className="text-[6px] font-black text-blue-300/20 uppercase tracking-tighter">{CLUSTER_TRANSLATIONS[m.name] ? CLUSTER_TRANSLATIONS[m.name].slice(0, 3) : m.name.slice(0, 3)}</span>
+                            <span className="text-[6px] font-black text-blue-300/20 uppercase tracking-tighter">
+                                {(CLUSTER_TRANSLATIONS[m.name] || m.name).slice(0, 3)}
+                            </span>
                         </div>
                     ))}
                 </div>

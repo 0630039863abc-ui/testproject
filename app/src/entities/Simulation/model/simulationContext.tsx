@@ -97,15 +97,17 @@ interface Resident {
     name: string;
     primaryCluster: ClusterType;
     secondaryCluster: ClusterType;
+    age: number;
+    gender: 'Male' | 'Female' | 'Мужской' | 'Женский';
 }
 
 // Per-agent bias patterns - agents focus on 2 dominant clusters but participate in all 6
 const RESIDENTS: Resident[] = [
-    { name: 'Алекс Новиков', primaryCluster: 'Society', secondaryCluster: 'Art' },
-    { name: 'Masha Rostova', primaryCluster: 'Science', secondaryCluster: 'Technology' },
-    { name: 'Иван Петров', primaryCluster: 'Economics', secondaryCluster: 'Politics' },
-    { name: 'Елена Соколова', primaryCluster: 'Society', secondaryCluster: 'Economics' },
-    { name: 'Дмитрий Волков', primaryCluster: 'Technology', secondaryCluster: 'Science' },
+    { name: 'Алекс Новиков', primaryCluster: 'Society', secondaryCluster: 'Art', age: 24, gender: 'Мужской' },
+    { name: 'Masha Rostova', primaryCluster: 'Science', secondaryCluster: 'Technology', age: 22, gender: 'Женский' },
+    { name: 'Иван Петров', primaryCluster: 'Economics', secondaryCluster: 'Politics', age: 38, gender: 'Мужской' },
+    { name: 'Елена Соколова', primaryCluster: 'Society', secondaryCluster: 'Economics', age: 29, gender: 'Женский' },
+    { name: 'Дмитрий Волков', primaryCluster: 'Technology', secondaryCluster: 'Science', age: 45, gender: 'Мужской' },
 ];
 
 const EVENT_CONTEXTS = [

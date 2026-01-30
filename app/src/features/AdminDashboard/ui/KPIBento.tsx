@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { Trophy, Activity, TrendingUp, Cpu } from 'lucide-react';
 import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
-import { CLUSTER_COLORS } from '../../../shared/lib/tokens';
+import { CLUSTER_COLORS, CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 import { motion } from 'framer-motion';
 
 const Sparkline = ({ data, color }: { data: any[], color: string }) => (
@@ -108,7 +108,7 @@ export const KPIBento: React.FC = () => {
                                 <span className="text-[20px] font-black italic">#{idx + 1}</span>
                             </div>
                             <div className="flex justify-between items-center relative z-10">
-                                <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: item.color }}>{item.name}</span>
+                                <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: item.color }}>{CLUSTER_TRANSLATIONS[item.name] || item.name}</span>
                                 <span className="text-[11px] font-black text-white tabular-nums">{item.score}</span>
                             </div>
                             <div className="h-6">

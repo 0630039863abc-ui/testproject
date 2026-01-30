@@ -9,6 +9,7 @@ const StrategicVoronoiMap = React.lazy(() => import('../../../features/AdminDash
 const KPIBento = React.lazy(() => import('../../../features/AdminDashboard/ui/KPIBento').then(module => ({ default: module.KPIBento })));
 const AnomalyEngine = React.lazy(() => import('../../../features/AdminDashboard/ui/AnomalyEngine').then(module => ({ default: module.AnomalyEngine })));
 const LiveOccupancy = React.lazy(() => import('../../../features/AdminDashboard/ui/LiveOccupancy').then(module => ({ default: module.LiveOccupancy })));
+const DemographicMatrix = React.lazy(() => import('../../../features/AdminDashboard/ui/DemographicMatrix').then(module => ({ default: module.DemographicMatrix })));
 
 interface StrategicCommandProps {
     currentView: 'physical' | 'user' | 'admin';
@@ -58,21 +59,9 @@ export const StrategicCommand: React.FC<StrategicCommandProps> = ({ currentView,
                                 <AnomalyEngine metrics={currentMetrics} showAnomalies={showAnomalies} onToggle={() => setShowAnomalies(!showAnomalies)} />
                             </motion.div>
 
-                            {/* Technical Footer Readout */}
-                            <div className="flex-1 min-h-0 flex flex-col justify-end">
-                                <div className="p-4 bg-white/[0.02] border border-white/5 rounded flex flex-col gap-2">
-                                    <div className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Аналитический Поток v9.42</div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-[7px] text-white/30 uppercase">Аптайм</span>
-                                            <span className="text-[10px] text-emerald-500 font-bold">100% ЗАЩИЩЕНО</span>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[7px] text-white/30 uppercase">Узлы</span>
-                                            <span className="text-[10px] text-blue-400 font-bold">АКТИВНО: 12</span>
-                                        </div>
-                                    </div>
-                                </div>
+                            {/* Predictive Analytics: Demographic Matrix */}
+                            <div className="flex-1 min-h-0 mt-2">
+                                <DemographicMatrix />
                             </div>
                         </div>
 

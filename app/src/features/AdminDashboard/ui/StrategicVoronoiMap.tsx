@@ -268,7 +268,7 @@ export const StrategicVoronoiMap: React.FC = () => {
                     {activeCell ? activeCell.activeUnits : 'ОЖИДАНИЕ'}
                 </div>
                 <div className="text-[7px] text-blue-300/30 uppercase font-black tracking-widest mt-0.5">
-                    {activeCell ? `${CLUSTER_TRANSLATIONS[hovered] || hovered} ЕМКОСТЬ` : 'ВЫБЕРИТЕ ОСТРОВ'}
+                    {activeCell && hovered ? `${CLUSTER_TRANSLATIONS[hovered] || hovered} ЕМКОСТЬ` : 'ВЫБЕРИТЕ ОСТРОВ'}
                 </div>
             </div>
 

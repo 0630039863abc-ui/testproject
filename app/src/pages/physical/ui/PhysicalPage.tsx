@@ -10,7 +10,7 @@ import { useSimulation } from '../../../entities/Simulation/model/simulationCont
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateInsights } from '../../../entities/Simulation/lib/insightEngine';
 import {
-    Play, Pause, RefreshCcw, Activity
+    Play, Pause, RefreshCcw, Activity, Box
 } from 'lucide-react';
 import clsx from 'clsx';
 

@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Float, Line, PerspectiveCamera, Environment, Stars } from '@react-three/drei';
+import { OrbitControls, Text, Float, Line, PerspectiveCamera, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { CLUSTER_COLORS, CLUSTER_TRANSLATIONS } from '../shared/lib/tokens';
 import type { ClusterType } from '../types';

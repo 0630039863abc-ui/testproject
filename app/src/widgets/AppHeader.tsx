@@ -43,8 +43,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ currentView, onChangeView 
                 />
             </nav>
 
-            {/* Right: Empty for now, can add system info later */}
-            <div className="w-[100px]"></div>
+            {/* Right: Network Status */}
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/5 rounded-full">
+                    <span className="text-[8px] font-mono text-white/40 uppercase tracking-widest">СЕТЬ: ЛОКАЛХОСТ</span>
+                    <div className="flex gap-1.5">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] shadow-[0_0_4px_#10b981]" title="RX" />
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-[pulse_0.8s_ease-in-out_infinite] shadow-[0_0_4px_#3b82f6]" title="TX" />
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

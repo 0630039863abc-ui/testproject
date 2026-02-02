@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Float, Text, MeshDistortMaterial } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -7,7 +7,7 @@ import { useSimulation } from '../../../entities/Simulation/model/simulationCont
 import type { ClusterType } from '../../../types';
 import { CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 
-const ClusterNode = ({ position, label, size, onClick, color, intensity }: any) => {
+const ClusterNode = React.memo(({ position, label, size, onClick, color, intensity }: any) => {
     const mesh = useRef<THREE.Mesh>(null);
 
     useFrame((state) => {
@@ -50,17 +50,14 @@ const ClusterNode = ({ position, label, size, onClick, color, intensity }: any) 
             </group>
         </Float>
     );
-};
+});
 
 export const RegionalTopology: React.FC<{ onSelect: (c: ClusterType) => void; selected: ClusterType }> = ({ onSelect, selected }) => {
     const { clusterMetrics } = useSimulation();
 
-    // Helper to get metrics for a cluster
-    const getClusterMetrics = (name: string) => clusterMetrics.find(c => c.name === name);
-
-    // Calculate dynamic props based on active units
-    const getNodeProps = (name: string, baseSize: number) => {
-        const metrics = getClusterMetrics(name);
+    // Calculate dynamic props based on active units - MEMOIZED
+    const getNodeProps = useCallback((name: string, baseSize: number) => {
+        const metrics = clusterMetrics.find(c => c.name === name);
         const units = metrics?.activeUnits || 10;
         // Scale size slightly with units (max +50%)
         const dynamicSize = baseSize + (units / 100) * 0.5;
@@ -68,7 +65,7 @@ export const RegionalTopology: React.FC<{ onSelect: (c: ClusterType) => void; se
         const intensity = 0.5 + (units / 50);
 
         return { size: dynamicSize, intensity };
-    };
+    }, [clusterMetrics]);
 
     return (
         <div className="w-full h-full relative rounded-2xl overflow-hidden glass-panel">

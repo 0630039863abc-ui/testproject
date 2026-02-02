@@ -29,7 +29,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onClose }) => {
                     {/* Header Actions */}
                     <div className="flex justify-between items-start mb-4">
                         <span className="text-[10px] font-mono text-blue-400 uppercase tracking-widest border border-blue-500/30 px-2 py-0.5 rounded-sm bg-blue-500/10">
-                            lnk :: {event.type}
+                            ЛИНК :: {event.type}
                         </span>
                         <button
                             onClick={onClose}
@@ -46,7 +46,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onClose }) => {
 
                     {/* Description */}
                     <p className="text-[11px] text-gray-400 mb-5 leading-relaxed font-mono border-l border-white/10 pl-3">
-                        {event.description || "Data packet verified. Encryption level: Standard. Subject matter requires cognitive engagement."}
+                        {event.description || "Пакет данных верифицирован. Уровень шифрования: Стандартный. Предмет требует когнитивного вовлечения."}
                     </p>
 
                     {/* Metadata Grid */}
@@ -61,13 +61,13 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onClose }) => {
                         </div>
                         <div className="col-span-2 flex items-center gap-2 text-gray-400">
                             <MapPin size={10} className="text-blue-500" />
-                            <span className="truncate">Sector 7G, Neuro-Lab 04</span>
+                            <span className="truncate">Сектор 7G, Нейро-Лаб 04</span>
                         </div>
                     </div>
 
                     {/* Action Button */}
                     <button className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 group">
-                        <span>Initialize</span>
+                        <span>ИНИЦИАЛИЗАЦИЯ</span>
                         <div className="w-1 h-1 bg-white rounded-full group-hover:animate-ping"></div>
                     </button>
                 </TechCard>

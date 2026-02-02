@@ -5,43 +5,9 @@ import { Delaunay } from 'd3-delaunay';
 import * as THREE from 'three';
 import { CLUSTER_COLORS, CLUSTER_TRANSLATIONS, HUD_COLORS } from '../../../shared/lib/tokens';
 import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
+import clsx from 'clsx';
 
 type MapPoint = [number, number];
-
-const TechnicalCallout = ({ position, label, sublabel, align = 'left' }: any) => {
-    const points = useMemo(() => new Float32Array([0, -0.3, 0, align === 'left' ? -0.8 : 0.8, -0.3, 0]), [align]);
-    return (
-        <group position={position}>
-            <Html
-                position={[align === 'left' ? -0.8 : 0.8, 0, 0]}
-                transform
-                occlude
-                style={{
-                    pointerEvents: 'none',
-                    transform: `translate3d(${align === 'left' ? '-100%' : '0'}, -50%, 0)`,
-                    textAlign: align as any
-                }}
-            >
-                <div className="flex flex-col" style={{ alignItems: align === 'left' ? 'flex-end' : 'flex-start', width: '200px' }}>
-                    <span className="text-[14px] font-black text-blue-500 uppercase tracking-widest whitespace-nowrap">{label}</span>
-                    <span className="text-[10px] text-white/60 font-mono uppercase whitespace-nowrap">{sublabel}</span>
-                </div>
-            </Html>
-            <line>
-                <bufferGeometry>
-                    <bufferAttribute
-                        attach="attributes-position"
-                        count={2}
-                        array={points}
-                        itemSize={3}
-                        args={[points, 3]}
-                    />
-                </bufferGeometry>
-                <lineBasicMaterial color={HUD_COLORS.primary} transparent opacity={0.2} />
-            </line>
-        </group>
-    );
-};
 
 const getRandomPointInPolygon = (points: [number, number][]): [number, number] => {
     if (points.length < 3) return [0, 0];
@@ -142,10 +108,21 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
         }
     }, [pulse, points, color]);
 
-    useFrame(() => {
+    useFrame((state) => {
         if (meshRef.current) {
             const targetZ = active ? 0.6 : 0;
             meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, targetZ, 0.1);
+
+            // Ambient Pulse Logic
+            const material = meshRef.current.material as THREE.MeshStandardMaterial;
+            if (!active) {
+                const pulse = Math.sin(state.clock.elapsedTime * 0.8 + label.length) * 0.1 + 0.3;
+                material.opacity = pulse;
+                material.emissiveIntensity = pulse * 2;
+            } else {
+                material.opacity = 0.95;
+                material.emissiveIntensity = 4;
+            }
         }
     });
 
@@ -176,9 +153,9 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
                 <meshStandardMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={active ? 4 : 0.3}
+                    emissiveIntensity={0.3}
                     transparent
-                    opacity={active ? 0.95 : 0.25}
+                    opacity={0.25}
                     side={THREE.DoubleSide}
                 />
 
@@ -231,7 +208,7 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
                 anchorX="center"
                 anchorY="middle"
             >
-                {count}
+                {Math.round(count)}
             </Text>
 
             {active && (
@@ -245,15 +222,85 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
     );
 };
 
+const AgentNode = ({ position, name, themeColor, isActive, lastAction }: any) => {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const targetPos = useRef(new THREE.Vector3(...position));
+    const [actionLabel, setActionLabel] = useState<string | null>(null);
+
+    // Set initial position once
+    useEffect(() => {
+        if (meshRef.current && meshRef.current.position.length() === 0) {
+            meshRef.current.position.set(position[0], position[1], position[2]);
+        }
+    }, []);
+
+    useEffect(() => {
+        targetPos.current.set(position[0], position[1], position[2]);
+    }, [position]);
+
+    useEffect(() => {
+        if (lastAction) {
+            setActionLabel(lastAction);
+            const timer = setTimeout(() => setActionLabel(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [lastAction]);
+
+    useFrame((state, delta) => {
+        if (meshRef.current) {
+            // Smooth movement
+            meshRef.current.position.lerp(targetPos.current, delta * 2.5);
+
+            // Subtle pulse
+            const s = (isActive ? 1.3 : 1.0) + Math.sin(state.clock.elapsedTime * 3 + name.length) * 0.1;
+            meshRef.current.scale.setScalar(s);
+        }
+    });
+
+    return (
+        <group>
+            <mesh ref={meshRef}>
+                <sphereGeometry args={[0.06, 8, 8]} />
+                <meshStandardMaterial
+                    color={themeColor}
+                    emissive={themeColor}
+                    emissiveIntensity={isActive ? 6 : 1.2}
+                    transparent
+                    opacity={0.9}
+                />
+            </mesh>
+
+            {(isActive || actionLabel) && (
+                <Html
+                    position={position}
+                    center
+                    distanceFactor={15}
+                    pointerEvents="none"
+                    style={{ transition: 'opacity 0.5s' }}
+                >
+                    <div className="flex flex-col items-center gap-1 pointer-events-none select-none">
+                        <div className={clsx(
+                            "px-1.5 py-0.5 rounded text-[7px] font-black uppercase whitespace-nowrap border backdrop-blur-md shadow-lg",
+                            actionLabel ? "bg-blue-600 border-white text-white animate-bounce" : "bg-black/80 border-white/20 text-white/90"
+                        )}>
+                            {actionLabel || name.split(' ')[0]}
+                        </div>
+                    </div>
+                </Html>
+            )}
+        </group>
+    );
+};
+
 export const StrategicVoronoiMap: React.FC = () => {
-    const { clusterMetrics } = useSimulation();
+    const { clusterMetrics, selectableUsers, currentUser, logs } = useSimulation();
     const [hovered, setHovered] = useState<string | null>(null);
     const [activeZone, setActiveZone] = useState<string | null>(null);
     const prevCounts = useRef<Record<string, number>>({});
     const [pulses, setPulses] = useState<Record<string, boolean>>({});
 
     // Track activity bursts
-    React.useEffect(() => {
+    useEffect(() => {
         const newPulses: Record<string, boolean> = {};
         let hasChanges = false;
 
@@ -276,6 +323,7 @@ export const StrategicVoronoiMap: React.FC = () => {
     const activeMetrics = useMemo(() => {
         return clusterMetrics.filter(m => m.activeUnits > 0);
     }, [clusterMetrics]);
+
     const cells = useMemo(() => {
         const count = activeMetrics.length;
         if (count === 0) return [];
@@ -299,18 +347,51 @@ export const StrategicVoronoiMap: React.FC = () => {
             const delaunay = Delaunay.from(points);
             const voronoi = delaunay.voronoi([-width / 3, -height / 3, width / 3, height / 3]);
 
-            return activeMetrics.map((m, i) => ({
-                name: m.name,
-                points: Array.from(voronoi.cellPolygon(i) || []),
-                color: CLUSTER_COLORS[m.name] || '#ffffff',
-                intensity: m.activeUnits,
-                activeUnits: m.activeUnits
-            }));
+            return activeMetrics.map((m, i) => {
+                const poly = Array.from(voronoi.cellPolygon(i) || []);
+                let cx = 0, cy = 0;
+                poly.forEach(p => { cx += p[0]; cy += p[1]; });
+
+                return {
+                    name: m.name,
+                    points: poly,
+                    centroid: [cx / poly.length, cy / poly.length],
+                    color: CLUSTER_COLORS[m.name] || '#ffffff',
+                    intensity: m.activeUnits,
+                    activeUnits: m.activeUnits
+                };
+            });
         } catch (e) {
             console.error('Voronoi Error:', e);
             return [];
         }
     }, [activeMetrics]);
+
+    // Map agents to positions
+    const agentsWithPositions = useMemo(() => {
+        return selectableUsers.map((user: any, i: number) => {
+            const primaryCluster = (user.stats && Object.entries(user.stats).sort((a: any, b: any) => b[1] - a[1])[0]?.[0]) || 'Science';
+            const cell = cells.find(c => c.name === primaryCluster);
+            if (!cell) return null;
+
+            // Use seeded jitter that drifts slightly
+            const jitterX = Math.sin(i * 17.5) * 1.2;
+            const jitterY = Math.cos(i * 21.2) * 1.2;
+
+            const lastLog = logs.find(l => l.userId === user.name);
+            const isRecent = lastLog && (Date.now() - lastLog.timestamp < 3000);
+
+            return {
+                id: user.id,
+                name: user.name,
+                position: [cell.centroid[0] + jitterX, cell.centroid[1] + jitterY, 0.15] as [number, number, number],
+                themeColor: cell.color,
+                isActive: currentUser.id === user.id,
+                lastAction: isRecent ? lastLog.action : null
+            };
+        }).filter(Boolean);
+    }, [selectableUsers, cells, currentUser.id, logs]);
+
 
     const activeCell = clusterMetrics.find(m => m.name === hovered);
 
@@ -338,7 +419,7 @@ export const StrategicVoronoiMap: React.FC = () => {
                 <p className="text-[7px] text-blue-300/30 mt-1 font-mono uppercase tracking-[0.1em]">Гибкое Распределение Доменов</p>
             </div>
 
-            <Canvas gl={{ antialias: true, alpha: true }} camera={{ position: [0, -12, 18], fov: 32 }}>
+            <Canvas gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }} camera={{ position: [0, -12, 18], fov: 32 }}>
                 <OrbitControls enableZoom={false} maxPolarAngle={Math.PI / 2.3} minPolarAngle={Math.PI / 4} enablePan={false} />
                 <ambientLight intensity={1.5} />
                 <pointLight position={[5, 10, 10]} intensity={3} color={HUD_COLORS.secondary} />
@@ -361,10 +442,17 @@ export const StrategicVoronoiMap: React.FC = () => {
                             />
                         ))}
 
-                        <TechnicalCallout position={[-6.5, 4, 0]} label="Синхр Волны" sublabel="Канал v1.2" align="left" />
-                        <TechnicalCallout position={[6.5, 4, 0]} label="Нагрузка Прилива" sublabel="Энтропия Потока" align="right" />
-                        <TechnicalCallout position={[-6.5, -4, 0]} label="Закреплено" sublabel="99.98% ОК" align="left" />
-                        <TechnicalCallout position={[6.5, -4, 0]} label="Маяк" sublabel="Активное Сканирование" align="right" />
+                        {/* Agents Visualization */}
+                        {agentsWithPositions.map((agent: any) => (
+                            <AgentNode
+                                key={agent.id}
+                                position={agent.position}
+                                name={agent.name}
+                                themeColor={agent.themeColor}
+                                isActive={agent.isActive}
+                                lastAction={agent.lastAction}
+                            />
+                        ))}
 
                         <gridHelper args={[24, 12]} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.1]}>
                             <meshBasicMaterial color="#00ffff" transparent opacity={0.02} />

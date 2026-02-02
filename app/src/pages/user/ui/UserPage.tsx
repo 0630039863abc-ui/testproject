@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { ClusterPulseCards } from '../../../widgets/ClusterPulseCards';
 import { AgentTelemetryStream } from '../../../widgets/AgentTelemetryStream';
 import { EventCard } from '../../../entities/Event/ui/EventCard';
@@ -9,8 +9,9 @@ import { useSimulation } from '../../../entities/Simulation/model/simulationCont
 import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
 import { Star, Grid } from 'lucide-react';
 import { CognitiveDrift } from '../../../entities/User/ui/CognitiveDrift';
-import { getClusterColor } from '../../../shared/lib/tokens';
+import { CLUSTER_TRANSLATIONS, getClusterColor } from '../../../shared/lib/tokens';
 import { Loading } from '../../../shared/ui/Loading';
+import { useMemo } from 'react';
 
 const PersonalKnowledgeGraph = React.lazy(() => import('../../../features/KnowledgeGraph/ui/PersonalKnowledgeGraph').then(module => ({ default: module.PersonalKnowledgeGraph })));
 const SpiderChart = React.lazy(() => import('../../../entities/User/ui/SpiderChart').then(module => ({ default: module.SpiderChart })));
@@ -31,6 +32,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
     const dominantCluster = getDominantCluster(currentUser.stats as any);
     const themeColor = getClusterColor(dominantCluster);
 
+    // Personality Assessment Logic
+    const personalityInsight = useMemo(() => {
+        const stats = currentUser.stats;
+        const sorted = Object.entries(stats).sort((a, b) => (b[1] as number) - (a[1] as number));
+        const topCluster = sorted[0]?.[0] || 'Science';
+        const translation = CLUSTER_TRANSLATIONS[topCluster] || topCluster;
+
+        const seed = currentUser.id.length + currentUser.eventsAttended;
+        const patterns = [
+            `Вы в последнее время больше интересуетесь разделом "${translation}"`,
+            `За последнее время вы посетили ${currentUser.eventsAttended} мероприятий, посвященных ${translation.toLowerCase() === 'искусство' ? 'искусству' : translation.toLowerCase() === 'наука' ? 'науке' : translation.toLowerCase() === 'технологии' ? 'технологиям' : translation.toLowerCase()}`,
+            `Ваша активность в кластере "${translation}" значительно возросла`
+        ];
+
+        return patterns[seed % patterns.length];
+    }, [currentUser.stats, currentUser.eventsAttended, currentUser.id]);
+
     // L5 Trigger Logic (Science & Tech based)
     useEffect(() => {
         const techSkill = (currentUser.stats['Science'] || 0) + (currentUser.stats['Technology'] || 0);
@@ -42,27 +60,25 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
         }
     }, [currentUser.stats, currentUser.skillsUnlocked]);
 
-    // Handler for Graph Interaction
+    // Handler for Graph Interaction - MEMOIZED to prevent graph reset
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleNodeClick = (node: any) => {
+    const handleNodeClick = useCallback((node: any) => {
         if (node.group === 'topic' || node.group === 'event') {
             setSelectedEvent({
                 id: node.id,
                 title: node.title || node.name || node.id,
-                type: node.group === 'event' ? "Event" : "Topic",
+                type: node.group === 'event' ? "Событие" : "Тема",
                 date: "2026-05-12",
                 time: "14:00"
             });
-        } else {
-            setSelectedEvent(null);
         }
-    };
+    }, []);
 
     return (
         <LayoutGroup>
             <div className="w-full h-screen flex flex-col bg-[#020202] overflow-hidden font-sans text-slate-200 selection:bg-blue-500/30">
 
-                {/* Global Header - Now in flex flow */}
+                {/* Global Header */}
                 <AppHeader
                     currentView={currentView}
                     onChangeView={onChangeView}
@@ -83,90 +99,82 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
                         </AnimatePresence>
                     </div>
 
-                    {/* RIGHT PANE: Telemetry Dashboard (40%) */}
-                    <div className="w-[40%] h-full bg-[#030303] flex flex-col relative border-l border-blue-900/30 overflow-hidden bg-grain">
+                    {/* RIGHT PANE: Telemetry Dashboard (Glass HUD) */}
+                    <div className="w-[40%] h-full relative overflow-hidden bg-[#030303]/40 flex flex-col">
+                        {/* Deep Glass Background Layer */}
+                        <div className="absolute inset-0 bg-[#050505]/60 backdrop-blur-[40px] z-0" />
+                        <div className="absolute inset-0 bg-hex-pattern opacity-5 pointer-events-none z-0" />
 
-                        {/* Global Atmospherics */}
-                        <div className="absolute inset-0 z-0 bg-tech-grid opacity-20 pointer-events-none"></div>
-                        <div className="absolute inset-0 z-0 scanlines opacity-30 pointer-events-none"></div>
+                        {/* Border Details */}
+                        <div className="absolute top-0 bottom-0 left-0 w-[1px] bg-white/10 z-20" />
+                        <div className="absolute top-10 bottom-10 left-[-1px] w-[3px] bg-blue-500/50 blur-[2px] z-20" />
 
-                        {/* 1. COMPACT PROFILE HEADER */}
-                        <div className="flex-none pt-2 px-4 pb-3 bg-[#030303]/95 backdrop-blur-2xl border-b border-white/5 z-30 relative">
-                            {/* Profile Info Row */}
-                            <div className="flex justify-between items-center mb-2">
-                                <div className="flex flex-col gap-1">
-                                    <h2 className="text-lg font-black text-white uppercase tracking-tight leading-none" style={{ textShadow: `0 0 10px ${themeColor}` }}>
+
+                        <div className="flex-none pt-6 px-6 pb-2 border-b border-white/5 z-10 relative bg-white/[0.01]">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="flex flex-col gap-0.5">
+                                    <h2 className="text-xl font-bold text-white uppercase tracking-wider leading-none filter drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
                                         {currentUser.name}
                                     </h2>
-                                    <div className="flex items-center gap-3 text-[10px] font-mono text-gray-400">
-                                        <span>24 года</span>
-                                        <span className="text-white/20">•</span>
-                                        <span>Москва</span>
+                                    <div className="flex items-center gap-3 text-[9px] font-mono text-blue-300/40 uppercase tracking-widest mt-1">
+                                        <span>ID: {currentUser.id.slice(0, 8)}</span>
+                                        <span className="text-white/10">|</span>
+                                        <span>УР: {Math.floor(currentUser.eventsAttended / 10) + 1}</span>
+                                    </div>
+                                    <div className="mt-2 text-[10px] font-medium text-white/40 italic border-l border-blue-500/20 pl-2">
+                                        "{personalityInsight}"
                                     </div>
                                 </div>
-                                <div className="px-2 py-1 bg-white/5 border border-white/10 rounded-sm">
-                                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider" style={{ color: themeColor }}>
-                                        {calculateArchetype(currentUser.stats).title}
-                                    </span>
-                                </div>
                             </div>
-
-                            {/* Agent Selector */}
                             <CharacterSelector themeColor={themeColor} />
                         </div>
 
-                        {/* 2. COGNITIVE TOPOLOGY (Fixed Visual Anchor) */}
-                        <div className="flex-none relative p-3 border-b border-white/5 bg-[#050505]/40 backdrop-blur-sm">
-                            <div className="absolute top-2 left-3 z-10">
-                                <h3 className="text-[8px] font-bold uppercase tracking-[0.2em] flex items-center gap-2" style={{ color: themeColor, textShadow: `0 0 5px ${themeColor}` }}>
-                                    <Grid size={8} />
+                        {/* 2. COGNITIVE TOPOLOGY */}
+                        <div className="flex-none relative p-6 border-b border-white/5 z-10">
+                            <div className="absolute top-0 left-0 w-20 h-[1px] bg-gradient-to-r from-blue-500/50 to-transparent" />
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2">
+                                    <Grid size={10} className="text-blue-500" />
                                     Когнитивная Топология
                                 </h3>
+                                <div className="text-[8px] font-mono text-white/20">СИНХРОНИЗАЦИЯ</div>
                             </div>
 
-                            <div className="w-full h-[200px] relative tech-border-container rounded-sm border border-white/5 bg-black/20 mt-2">
+                            <div className="w-full h-[200px] relative rounded-lg border border-white/5 bg-black/40 overflow-hidden group/chart">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.05),transparent_70%)]" />
                                 <Suspense fallback={<Loading />}>
                                     <SpiderChart themeColor={themeColor} />
                                 </Suspense>
+                                {/* Chart Decor */}
+                                <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-white/20" />
+                                <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-white/20" />
                             </div>
                         </div>
 
-                        {/* 3. SCROLLABLE FEED (Remaining Space) */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 bg-[#030303]/50">
-                            {/* Stream Section */}
-                            <section className="p-4 border-b border-white/5">
-                                <div className="mb-2 sticky top-0 bg-[#030303]/90 backdrop-blur-md py-1.5 z-20 border-b border-white/5 -mx-4 px-4 flex justify-between items-center">
-                                    <h3 className="text-[8px] font-bold uppercase tracking-[0.2em] flex items-center gap-2" style={{ color: themeColor }}>
-                                        <span className="w-1 h-1 rounded-full animate-pulse" style={{ backgroundColor: themeColor }}></span>
-                                        Поведенческий Резонанс // ПУЛЬС
+                        {/* 3. SCROLLABLE FEED */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
+                            <section className="p-6">
+                                <div className="mb-4 sticky top-0 bg-[#030303]/0 backdrop-blur-none z-20 flex justify-between items-center">
+                                    <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_5px_#ef4444]" />
+                                        Нейро-Стрим
                                     </h3>
-                                    <span className="text-[8px] font-mono text-gray-600 animate-pulse">LIVE</span>
                                 </div>
-                                <ClusterPulseCards />
 
-                                {/* Agent Telemetry Stream */}
-                                <div className="mt-4 pt-3 border-t border-white/5">
+                                <ClusterPulseCards />
+                                <div className="mt-6 pt-6 border-t border-white/5 border-dashed">
                                     <AgentTelemetryStream />
                                 </div>
                             </section>
 
-                            {/* Cognitive Drift Section */}
-                            <section className="p-4 border-b border-white/5 bg-[#050505]/20">
+                            <section className="p-6 pt-0 opacity-60 hover:opacity-100 transition-opacity duration-500">
                                 <CognitiveDrift />
                             </section>
-
-                            {/* Footer Spacer */}
-                            <div className="h-12 flex items-center justify-center opacity-30">
-                                <span className="text-[8px] font-mono text-gray-700">--- КОНЕЦ ТЕЛЕМЕТРИИ ---</span>
-                            </div>
                         </div>
-
                     </div>
-
                 </div>
             </div>
 
-            {/* ACHIEVEMENT MODAL - Root Level Z-Index Fix */}
             <AnimatePresence>
                 {showAchievement && (
                     <motion.div

@@ -3,7 +3,7 @@ import { ClusterPulseCards } from '../../../widgets/ClusterPulseCards';
 import { AgentTelemetryStream } from '../../../widgets/AgentTelemetryStream';
 import { EventCard } from '../../../entities/Event/ui/EventCard';
 import { AppHeader } from '../../../widgets/AppHeader';
-import { calculateArchetype, getDominantCluster } from '../../../entities/User/lib/archetype';
+import { getDominantCluster } from '../../../entities/User/lib/archetype';
 import { CharacterSelector } from '../../../features/User/CharacterSelector/ui/CharacterSelector';
 import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
 import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';

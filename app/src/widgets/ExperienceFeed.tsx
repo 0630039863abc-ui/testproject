@@ -3,7 +3,6 @@ import { useSimulation } from '../entities/Simulation/model/simulationContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Helper to determine semantic color for content
-// Helper to determine semantic color for content
 const getSemanticColor = (content: string) => {
     if (!content) return '#9ca3af';
     const upper = content.toUpperCase();
@@ -16,13 +15,16 @@ const getSemanticColor = (content: string) => {
     return '#9ca3af'; // Gray default
 };
 
-export const ExperienceFeed: React.FC = () => {
+const ExperienceFeedComponent: React.FC = () => {
     const { logs, currentUser } = useSimulation();
 
-    // Filter and Reverse logs to show newest first
-    const userLogs = logs
-        .filter(log => log.userId === currentUser.id || log.userId === currentUser.name)
-        .reverse();
+    // Filter and Reverse logs to show newest first - MEMOIZED and LIMITED
+    const userLogs = React.useMemo(() => {
+        return logs
+            .filter(log => log.userId === currentUser.id || log.userId === currentUser.name)
+            .reverse()
+            .slice(0, 20); // Limit to top 20 for performance
+    }, [logs, currentUser.id, currentUser.name]);
 
     return (
         <div className="flex flex-col gap-1 relative min-h-[200px]">
@@ -81,3 +83,5 @@ export const ExperienceFeed: React.FC = () => {
         </div>
     );
 };
+
+export const ExperienceFeed = React.memo(ExperienceFeedComponent);

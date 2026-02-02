@@ -2,7 +2,7 @@ export type ClusterName =
     | 'Science' | 'Technology' | 'Economics' | 'Society' | 'Politics' | 'Art'
     | 'Biology' | 'Psychology' | 'Philosophy' | 'Security' | 'Logistics'
     | 'Ecology' | 'Information' | 'Health' | 'Exploration' | 'Education'
-    | 'Justice' | 'Communication' | 'Infrastructure' | 'Intelligence' | 'Ontology';
+    | 'Justice' | 'Communication' | 'Infrastructure';
 
 interface Archetype {
     title: string;

@@ -17,33 +17,29 @@ export const CLUSTER_COLORS: Record<string, string> = {
     'Education': '#f59e0b',   // Amber
     'Justice': '#a855f7',     // Purple
     'Communication': '#14b8a6',// Teal
-    'Infrastructure': '#6b7280',// Gray
-    'Intelligence': '#3b82f6',  // Blue
-    'Ontology': '#ffffff'       // White
+    'Infrastructure': '#6b7280' // Gray
 };
 
 export const CLUSTER_TRANSLATIONS: Record<string, string> = {
-    'Science': 'Наука',
-    'Technology': 'Технологии',
-    'Economics': 'Экономика',
-    'Society': 'Общество',
-    'Politics': 'Политика',
-    'Art': 'Искусство',
-    'Biology': 'Биология',
-    'Psychology': 'Психология',
-    'Philosophy': 'Философия',
-    'Security': 'Безопасность',
-    'Logistics': 'Логистика',
-    'Ecology': 'Экология',
-    'Information': 'Информатика',
-    'Health': 'Здоровье',
-    'Exploration': 'Исследования',
-    'Education': 'Образование',
-    'Justice': 'Право',
-    'Communication': 'Коммуникации',
-    'Infrastructure': 'Инфраструктура',
-    'Intelligence': 'Интеллект',
-    'Ontology': 'Онтология'
+    'Science': 'НАУЧНЫЙ СЕКТОР',
+    'Technology': 'ТЕХНОЛОГИЧЕСКИЙ КЛАСТЕР',
+    'Economics': 'ЭКОНОМИЧЕСКИЙ БЛОК',
+    'Society': 'ОБЩЕСТВЕННАЯ СРЕДА',
+    'Politics': 'ПОЛИТИЧЕСКИЙ КОРПУС',
+    'Art': 'СФЕРА ИСКУССТВ',
+    'Biology': 'БИОЛОГИЧЕСКИЙ ОТДЕЛ',
+    'Psychology': 'ПСИХОЛОГИЧЕСКИЙ ПРОФИЛЬ',
+    'Philosophy': 'ФИЛОСОФСКИЙ БАЗИС',
+    'Security': 'СЕКТОР БЕЗОПАСНОСТИ',
+    'Logistics': 'ЛОГИСТИЧЕСКАЯ СЕТЬ',
+    'Ecology': 'ЭКОЛОГИЧЕСКИЙ КОНТРОЛЬ',
+    'Information': 'ИНФОРМАЦИОННОЕ ПОЛЕ',
+    'Health': 'СИСТЕМА ЗДРАВООХРАНЕНИЯ',
+    'Exploration': 'ИССЛЕДОВАТЕЛЬСКИЙ МОДУЛЬ',
+    'Education': 'ОБРАЗОВАТЕЛЬНЫЙ ЦЕНТР',
+    'Justice': 'ПРАВОВОЙ КОНТУР',
+    'Communication': 'КОММУНИКАЦИОННЫЙ УЗЕЛ',
+    'Infrastructure': 'ИНФРАСТРУКТУРНЫЙ БАЗИС'
 };
 
 export const HUD_COLORS = {

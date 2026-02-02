@@ -4,12 +4,14 @@ import { Zap } from 'lucide-react';
 import { getClusterColor, CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 import { motion } from 'framer-motion';
 
-export const CognitiveDrift: React.FC = () => {
+const CognitiveDriftComponent: React.FC = () => {
     const { logs, currentUser } = useSimulation();
 
-    // Calculate Drift (Velocity of Interest)
+    // Calculate Drift (Velocity of Interest) - MEMOIZED
     const driftData = useMemo(() => {
-        const userLogs = logs.filter(l => l.userId === currentUser.name).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        const userLogs = logs
+            .filter(l => l.userId === currentUser.name)
+            .sort((a, b) => b.timestamp - a.timestamp);
 
         if (userLogs.length < 5) return [];
 
@@ -39,13 +41,13 @@ export const CognitiveDrift: React.FC = () => {
         })
             .sort((a, b) => b.velocity - a.velocity)
             .slice(0, 6); // Show top 6 movers
-    }, [logs, currentUser]);
+    }, [logs, currentUser.name]);
 
     const maxTotal = Math.max(...driftData.map(d => d.total), 1);
 
     return (
         <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
+            <div className="items-center gap-2 flex">
                 <Zap size={9} className="text-yellow-500" />
                 <h3 className="text-[9px] font-mono font-bold uppercase tracking-widest text-gray-400">
                     Когнитивный Дрифт
@@ -110,3 +112,5 @@ export const CognitiveDrift: React.FC = () => {
         </div>
     );
 };
+
+export const CognitiveDrift = React.memo(CognitiveDriftComponent);

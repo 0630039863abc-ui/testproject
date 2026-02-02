@@ -80,49 +80,53 @@ export const AgentTelemetryStream: React.FC = () => {
                 </div>
             </div>
 
-            {/* Telemetry Stream */}
-            <div className="border border-white/5 bg-black/20 rounded-sm max-h-[200px] overflow-y-auto custom-scrollbar">
+            {/* Telemetry Stream (Synaptic Feed) */}
+            <div className="relative border-l-2 border-white/5 ml-3 pl-4 space-y-4 max-h-[450px] overflow-y-auto custom-scrollbar pt-2 pb-10">
+                {/* Central Spine Gradient */}
+                <div className="absolute left-[-1px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-blue-500/20 to-transparent" />
+
                 <AnimatePresence initial={false}>
-                    {streamLogs.map((log) => {
+                    {streamLogs.map((log, idx) => {
                         const color = getClusterColor(log.cluster);
                         const agentName = typeof log.userId === 'string' ? log.userId.split(' ')[0] : 'Unknown';
+                        // Stagger delay for entrance
+                        const delay = idx * 0.05;
 
                         return (
                             <motion.div
                                 key={`${log.timestamp}-${log.id}`}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="flex items-center gap-2 px-2 py-1 border-b border-white/5 last:border-b-0 hover:bg-white/5 transition-colors text-[8px] font-mono"
+                                initial={{ opacity: 0, x: -10, scale: 0.95 }}
+                                animate={{ opacity: 1, x: 0, scale: 1 }}
+                                transition={{ duration: 0.3, delay }}
+                                className="relative group/log"
                             >
-                                {/* Timestamp */}
-                                <span className="text-gray-600 shrink-0 w-14">
-                                    {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
-                                </span>
+                                {/* Node on Spine */}
+                                <div
+                                    className="absolute left-[-21px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-[#030303] shadow-[0_0_10px_currentColor] z-10 transition-transform group-hover/log:scale-125"
+                                    style={{ backgroundColor: color, color: color }}
+                                />
 
-                                {/* Agent */}
-                                <span className="text-blue-400 shrink-0 w-12 truncate font-bold">
-                                    {agentName}
-                                </span>
+                                {/* Connection Branch */}
+                                <div className="absolute left-[-16px] top-2.5 w-4 h-[1px] bg-white/10 group-hover/log:bg-white/30 transition-colors" />
 
-                                {/* Action */}
-                                <span className="text-white shrink-0">
-                                    {log.action}
-                                </span>
+                                {/* Content Card */}
+                                <div className="bg-white/[0.03] border border-white/5 rounded-r-lg rounded-bl-lg p-2 hover:bg-white/[0.06] transition-all hover:border-white/10 hover:translate-x-1 cursor-default">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className="text-[9px] font-bold text-white/90 uppercase tracking-wide">
+                                            {log.action}
+                                        </span>
+                                        <span className="text-[8px] font-mono text-white/30 shrink-0">
+                                            {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })}
+                                        </span>
+                                    </div>
 
-                                {/* Cluster/Topic */}
-                                <span
-                                    className="truncate flex-1"
-                                    style={{ color, textShadow: `0 0 5px ${color}40` }}
-                                >
-                                    {CLUSTER_TRANSLATIONS[log.cluster] || log.cluster}
-                                    {log.topic && ` / ${log.topic}`}
-                                </span>
-
-                                {/* Signal indicator */}
-                                <div className="flex gap-[1px] opacity-50">
-                                    <div className="w-0.5 h-1" style={{ backgroundColor: color }} />
-                                    <div className="w-0.5 h-1.5" style={{ backgroundColor: color }} />
-                                    <div className="w-0.5 h-1" style={{ backgroundColor: color }} />
+                                    <div className="flex items-center gap-2 text-[8px] font-mono">
+                                        <span className="text-blue-400 font-bold">@{agentName}</span>
+                                        <span className="text-white/20">::</span>
+                                        <span style={{ color }} className="uppercase font-bold tracking-tight truncate max-w-[120px]">
+                                            {CLUSTER_TRANSLATIONS[log.cluster] || log.cluster}
+                                        </span>
+                                    </div>
                                 </div>
                             </motion.div>
                         );
@@ -130,8 +134,8 @@ export const AgentTelemetryStream: React.FC = () => {
                 </AnimatePresence>
 
                 {streamLogs.length === 0 && (
-                    <div className="text-center py-4 text-[9px] font-mono text-gray-600 animate-pulse">
-                        ОЖИДАНИЕ ТЕЛЕМЕТРИИ...
+                    <div className="text-left pl-2 text-[9px] font-mono text-gray-600 animate-pulse italic">
+                        // ОЖИДАНИЕ СИНАПТИЧЕСКОГО ОТКЛИКА...
                     </div>
                 )}
             </div>

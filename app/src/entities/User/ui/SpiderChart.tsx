@@ -7,7 +7,7 @@ interface SpiderChartProps {
     themeColor?: string; // Fallback only
 }
 
-export const SpiderChart: React.FC<SpiderChartProps> = ({ themeColor: fallbackColor = '#3b82f6' }) => {
+const SpiderChartComponent: React.FC<SpiderChartProps> = ({ themeColor: fallbackColor = '#3b82f6' }) => {
     const { logs, currentUser } = useSimulation();
     const activeClusters = ['Science', 'Technology', 'Economics', 'Society', 'Politics', 'Art'];
 
@@ -113,3 +113,5 @@ export const SpiderChart: React.FC<SpiderChartProps> = ({ themeColor: fallbackCo
         </div>
     );
 };
+
+export const SpiderChart = React.memo(SpiderChartComponent);

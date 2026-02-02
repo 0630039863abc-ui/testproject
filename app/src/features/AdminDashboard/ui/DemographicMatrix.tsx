@@ -1,14 +1,13 @@
 import React, { useMemo } from 'react';
-import { useSimulation, RESIDENTS, type Resident } from '../../../entities/Simulation/model/simulationContext';
+import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
 import { CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 import { motion } from 'framer-motion';
 import { Target, AlertCircle, Zap, TrendingUp } from 'lucide-react';
 
 const AGE_GROUPS = [
-    { label: '18-25', min: 18, max: 25 },
-    { label: '26-35', min: 26, max: 35 },
-    { label: '36-45', min: 36, max: 45 },
-    { label: '46+', min: 46, max: 100 },
+    { label: '7-12', min: 7, max: 12, stage: 'ДЕТИ' },
+    { label: '13-17', min: 13, max: 17, stage: 'ПОДРОСТКИ' },
+    { label: '18-35', min: 18, max: 35, stage: 'МОЛОДЕЖЬ' },
 ];
 
 export const DemographicMatrix: React.FC = () => {
@@ -16,16 +15,11 @@ export const DemographicMatrix: React.FC = () => {
 
     const matrixData = useMemo(() => {
         const userMap = selectableUsers.reduce((acc, u) => {
-            acc[u.name] = { age: (u as any).age || 25 };
+            acc[u.name] = { age: u.age };
             return acc;
         }, {} as Record<string, { age: number }>);
 
-        // Add internal residents to userMap for matrix calculations
-        RESIDENTS.forEach((r: Resident) => {
-            if (!userMap[r.name]) userMap[r.name] = { age: r.age };
-        });
-
-        const clusters = ['Science', 'Technology', 'Economics', 'Society', 'Politics', 'Art'];
+        const clusters = ['Science', 'Technology', 'Economics', 'Society', 'Politics', 'Art', 'Health'];
 
         return AGE_GROUPS.map(group => {
             const groupLogs = logs.filter(l => {
@@ -82,17 +76,18 @@ export const DemographicMatrix: React.FC = () => {
 
             <div className="flex-1 grid grid-cols-[60px_1fr] gap-4 min-h-0 z-10">
                 {/* Y-Axis Age Labels */}
-                <div className="flex flex-col justify-between py-8">
+                <div className="flex flex-col justify-between py-6">
                     {AGE_GROUPS.map(g => (
-                        <div key={g.label} className="text-[10px] font-black text-white/20 text-right uppercase tracking-tighter">
-                            {g.label}<br /><span className="text-[7px] font-normal text-white/10">ЛЕТ</span>
+                        <div key={g.label} className="flex flex-col items-end">
+                            <span className="text-[10px] font-black text-white/40 uppercase tracking-tighter tabular-nums">{g.label}</span>
+                            <span className="text-[7px] font-bold text-cyan-400/40 uppercase tracking-widest">{g.stage}</span>
                         </div>
                     ))}
                 </div>
 
                 <div className="flex flex-col gap-3">
                     {/* X-Axis Cluster Labels */}
-                    <div className="grid grid-cols-6 gap-2">
+                    <div className="grid grid-cols-7 gap-2">
                         {matrixData[0].clusters.map((c: any) => (
                             <div key={c.name} className="text-[8px] font-black text-white/30 uppercase text-center truncate tracking-widest">
                                 {CLUSTER_TRANSLATIONS[c.name]?.slice(0, 3) || c.name.slice(0, 3)}
@@ -101,9 +96,9 @@ export const DemographicMatrix: React.FC = () => {
                     </div>
 
                     {/* Heatmap Grid */}
-                    <div className="flex-1 grid grid-rows-4 gap-2">
+                    <div className="flex-1 grid grid-rows-3 gap-2">
                         {matrixData.map((row: any, rIdx: number) => (
-                            <div key={row.group} className="grid grid-cols-6 gap-2">
+                            <div key={row.group} className="grid grid-cols-7 gap-2">
                                 {row.clusters.map((cell: any, cIdx: number) => {
                                     const intensity = Math.min(cell.interest / 20, 1);
                                     const hasPotential = cell.potential > 30;

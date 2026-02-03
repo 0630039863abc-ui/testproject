@@ -21,7 +21,7 @@ export type EvidenceType = 'web' | 'mobile' | 'sensor' | 'platform' | 'location'
 
 export type ObservableAction =
   | 'Просмотр анонса'
-  | 'Переход ссылке'
+  | 'Переход по ссылке'
   | 'Добавил календарь'
   | 'Геовход зафиксирован'
   | 'Регистрация скан'

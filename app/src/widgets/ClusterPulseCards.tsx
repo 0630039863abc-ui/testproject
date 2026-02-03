@@ -34,7 +34,7 @@ export const ClusterPulseCards: React.FC = () => {
                 label: CLUSTER_TRANSLATIONS[cluster] || cluster
             }))
             .sort((a, b) => b.count - a.count)
-            .slice(0, 6); // Top 6 clusters
+            .slice(0, 8); // Top clusters including Healthcare
     }, [logs, currentUser]);
 
     if (clusterData.length === 0) {

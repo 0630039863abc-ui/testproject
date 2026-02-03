@@ -22,6 +22,12 @@ export const HeroProfile: React.FC = () => {
                     <div className="flex items-center gap-2 text-blue-400 text-sm">
                         <Shield size={14} />
                         <span>{currentUser.role}</span>
+                        <span className="text-gray-500">•</span>
+                        <span>{currentUser.age} {((n) => {
+                            if (n % 10 === 1 && n % 100 !== 11) return 'год';
+                            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 'года';
+                            return 'лет';
+                        })(currentUser.age)}</span>
                     </div>
                 </div>
             </div>

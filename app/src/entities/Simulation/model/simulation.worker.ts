@@ -41,7 +41,7 @@ let intervalId: ReturnType<typeof setInterval> | null = null;
 const selectNextAction = () => {
     const actions: Array<{ action: ObservableAction; evidenceType: EvidenceType }> = [
         { action: 'Просмотр анонса', evidenceType: 'mobile' },
-        { action: 'Переход ссылке', evidenceType: 'web' },
+        { action: 'Переход по ссылке', evidenceType: 'web' },
         { action: 'Геовход зафиксирован', evidenceType: 'sensor' },
         { action: 'Регистрация скан', evidenceType: 'platform' },
         { action: 'Фото сделано', evidenceType: 'mobile' },

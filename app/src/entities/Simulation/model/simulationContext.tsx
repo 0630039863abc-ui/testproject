@@ -157,7 +157,8 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             eventsAttended: Math.floor(Math.random() * 50) + 20,
             skillsUnlocked: [],
             externalConnections: i === 0 ? ['Stepik', 'MSU'] : [],
-            age: r.age
+            age: r.age,
+            role: r.age < 18 ? 'Участник' : r.role // Force 'Student' role for minors
         }));
         setSelectableUsers(initialUsers);
 

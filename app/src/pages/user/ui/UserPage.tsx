@@ -39,10 +39,36 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
         const topCluster = sorted[0]?.[0] || 'Science';
         const translation = CLUSTER_TRANSLATIONS[topCluster] || topCluster;
 
+        // Dative case mapping for "посвященных..."
+        const getDativeCluster = (c: string) => {
+            const map: Record<string, string> = {
+                'Science': 'научному сектору',
+                'Technology': 'технологическому кластеру',
+                'Economics': 'экономическому блоку',
+                'Society': 'общественной среде',
+                'Politics': 'политическому корпусу',
+                'Art': 'искусству',
+                'Biology': 'биологическому отделу',
+                'Psychology': 'психологическому профилю',
+                'Philosophy': 'философскому базису',
+                'Security': 'сектору безопасности',
+                'Logistics': 'логистической сети',
+                'Ecology': 'экологическому контролю',
+                'Information': 'информационному полю',
+                'Health': 'здравоохранению',
+                'Exploration': 'исследовательскому модулю',
+                'Education': 'образовательному центру',
+                'Justice': 'правовому контуру',
+                'Communication': 'коммуникационному узлу',
+                'Infrastructure': 'инфраструктурному базису'
+            };
+            return map[c] || c.toLowerCase();
+        };
+
         const seed = currentUser.id.length + currentUser.eventsAttended;
         const patterns = [
             `Вы в последнее время больше интересуетесь разделом "${translation}"`,
-            `За последнее время вы посетили ${currentUser.eventsAttended} мероприятий, посвященных ${translation.toLowerCase() === 'искусство' ? 'искусству' : translation.toLowerCase() === 'наука' ? 'науке' : translation.toLowerCase() === 'технологии' ? 'технологиям' : translation.toLowerCase()}`,
+            `За последнее время вы посетили ${currentUser.eventsAttended} мероприятий, посвященных ${getDativeCluster(topCluster)}`,
             `Ваша активность в кластере "${translation}" значительно возросла`
         ];
 

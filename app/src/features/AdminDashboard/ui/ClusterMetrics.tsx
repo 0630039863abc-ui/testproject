@@ -77,9 +77,9 @@ export const ClusterMetrics: React.FC<ClusterMetricsProps> = ({ metrics, showAno
 
             <div className="glass-panel p-6 rounded-2xl flex-1 flex flex-col">
                 <h3 className="text-white font-bold mb-4">Рост Компетенции vs Стоимость</h3>
-                <div className="flex-1 w-full min-h-[200px]">
+                <div className="flex-1 w-full min-h-[250px] pb-4">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={data}>
+                        <AreaChart data={data} margin={{ bottom: 20 }}>
                             <defs>
                                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />

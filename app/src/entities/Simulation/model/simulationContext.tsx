@@ -144,7 +144,6 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const initialUsers = RESIDENTS.map((r, i) => ({
             id: `user_${i} `,
             name: r.name,
-            role: r.role,
             stats: {
                 Science: r.primaryCluster === 'Science' ? 60 : 20,
                 Technology: r.primaryCluster === 'Technology' ? 60 : 20,

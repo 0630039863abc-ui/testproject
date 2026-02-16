@@ -235,7 +235,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
         return () => cancelAnimationFrame(animationFrameId.current);
     }, []);
 
-    // ELLIPTICAL LAYOUT WITH ENTROPY
+    // FIBONACCI SPIRAL LAYOUT — galaxy-like with clusters near center and periphery
     const graphData = useMemo(() => {
         const nodes: any[] = [];
         const links: any[] = [];
@@ -246,19 +246,20 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
             return x - Math.floor(x);
         };
 
-        const radiusX = 350;
-        const radiusY = 280;
-        const jitter = 60; // random offset from ideal position
-        const zJitter = 40;
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5°
+        const maxRadius = 320;
+        const jitter = 45;
+        const zJitter = 35;
 
         allClusters.forEach((clusterName: any, index: number) => {
             const isActiveNode = activeZone === clusterName;
             const seed = index * 123.456;
 
-            // Base elliptical position
-            const angle = (index / allClusters.length) * Math.PI * 2 - Math.PI / 2;
-            const baseX = Math.cos(angle) * radiusX;
-            const baseY = Math.sin(angle) * radiusY;
+            // Fibonacci spiral: radius grows with sqrt, angle by golden ratio
+            const r = maxRadius * Math.sqrt((index + 0.5) / allClusters.length);
+            const angle = index * goldenAngle;
+            const baseX = Math.cos(angle) * r;
+            const baseY = Math.sin(angle) * r;
 
             // Add seeded jitter for entropy
             const x = baseX + (seededRandom(seed + 1) - 0.5) * jitter;

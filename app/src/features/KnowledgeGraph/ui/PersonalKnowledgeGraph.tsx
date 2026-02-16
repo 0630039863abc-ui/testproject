@@ -371,7 +371,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                 0.85   // threshold
             );
             fgRef.current.postProcessingComposer().addPass(bloomPass);
-            fgRef.current.cameraPosition({ x: 200, y: 150, z: 900 });
+            fgRef.current.cameraPosition({ x: 0, y: 0, z: 800 });
 
             const scene = fgRef.current.scene();
             const existing = scene.getObjectByName('starField');
@@ -407,7 +407,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
             if (fgRef.current) {
                 if (isDeselecting) {
                     fgRef.current.cameraPosition(
-                        { x: 200, y: 150, z: 900 },
+                        { x: 0, y: 0, z: 800 },
                         { x: 0, y: 0, z: 0 },
                         1500
                     );
@@ -486,7 +486,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                     setActiveTopic(null);
                     if (fgRef.current) {
                         fgRef.current.cameraPosition(
-                            { x: 200, y: 150, z: 900 },
+                            { x: 0, y: 0, z: 800 },
                             { x: 0, y: 0, z: 0 },
                             1500
                         );
@@ -675,6 +675,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                     return group;
                 }}
                 enableNodeDrag={false}
+                showNavInfo={false}
                 d3AlphaDecay={0}
                 d3VelocityDecay={0}
                 cooldownTicks={0}

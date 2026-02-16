@@ -266,56 +266,65 @@ export const ClusterStatsModule: React.FC<{ logs: any[] }> = ({ logs }) => {
 };
 
 export const TelemetryTableModule: React.FC<{ recentLogs: any[], selectedRowId: string | null, onSelect: (id: string) => void }> = ({ recentLogs, selectedRowId, onSelect }) => {
-
     return (
-        <div className="relative overflow-hidden flex flex-col group min-h-0 min-w-0 flex-1 border-r border-blue-500/10 h-full">
-            <CornerBrackets />
-            <div className="grid grid-cols-[80px_100px_100px_180px_1fr] gap-2 px-4 h-10 items-center border-b border-white/20 bg-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-white/60 shrink-0">
-                <div>ВРЕМЯ</div>
-                <div>СУБЪЕКТ</div>
-                <div>КЛАСТЕР</div>
-                <div>ДЕЙСТВИЕ</div>
-                <div>КОНТЕКСТ</div>
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center gap-2 px-4 h-9 border-b border-white/[0.05] shrink-0">
+                <Activity size={14} className="text-zinc-500" />
+                <h3 className="text-[13px] font-semibold text-zinc-400 uppercase tracking-wider">Телеметрия</h3>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative min-h-0">
-                <div className="absolute inset-0 pointer-events-none z-20 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%),linear-gradient(90deg,rgba(0,0,255,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_2px,3px_100%] opacity-10"></div>
-                <div className="flex flex-col min-h-0">
-                    {recentLogs.map((log, i) => {
-                        const isSelected = selectedRowId === log.id;
-                        const opacity = Math.max(1 - (i * 0.08), 0.4);
-                        return (
-                            <div
-                                key={log.id}
-                                onClick={() => onSelect(log.id)}
-                                className={clsx(
-                                    "grid grid-cols-[80px_100px_100px_180px_1fr] gap-2 px-4 h-10 border-b border-white/5 items-center cursor-pointer transition-all relative overflow-hidden shrink-0 group",
-                                    isSelected ? "bg-blue-500/15" : "hover:bg-blue-500/5"
-                                )}
-                                style={{ opacity: isSelected ? 1 : opacity }}
-                            >
-                                <div className="text-[10px] tabular-nums text-blue-500/60 font-mono">
-                                    {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
-                                </div>
-                                <div className="font-bold text-white group-hover:text-blue-400 transition-colors truncate text-[10px]">
-                                    {log.userId.split(' ')[0]}
-                                </div>
-                                <div className="min-w-0">
-                                    <span className="px-1.5 py-0.5 text-[8px] font-black uppercase rounded-[1px] text-black" style={{ backgroundColor: CLUSTER_COLORS[log.cluster] }}>
-                                        {CLUSTER_TRANSLATIONS[log.cluster]?.slice(0, 10) || log.cluster}
-                                    </span>
-                                </div>
-                                <div className="text-blue-200/90 font-black uppercase text-[9px] truncate">
-                                    {log.action}
-                                </div>
-                                <div className="text-white/40 italic text-[9px] truncate group-hover:text-white/60 transition-colors">
-                                    {log.zone}
-                                </div>
-                                {isSelected && <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-blue-500 shadow-[0_0_10px_#3b82f6]" />}
+            {/* Column Headers */}
+            <div className="grid grid-cols-[70px_90px_100px_1fr_1fr] gap-2 px-4 h-8 items-center border-b border-white/[0.05] text-[11px] font-medium uppercase tracking-wider text-zinc-500 shrink-0">
+                <div>Время</div>
+                <div>Субъект</div>
+                <div>Кластер</div>
+                <div>Действие</div>
+                <div>Контекст</div>
+            </div>
+
+            {/* Rows */}
+            <div className="flex-1 overflow-y-auto">
+                {recentLogs.map((log) => {
+                    const isSelected = selectedRowId === log.id;
+                    const color = CLUSTER_COLORS[log.cluster] || '#71717a';
+                    return (
+                        <div
+                            key={log.id}
+                            onClick={() => onSelect(log.id)}
+                            className={clsx(
+                                "grid grid-cols-[70px_90px_100px_1fr_1fr] gap-2 px-4 py-2 border-b border-white/[0.03] items-center cursor-pointer transition-colors duration-150 relative",
+                                isSelected ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
+                            )}
+                        >
+                            <div className="text-[11px] tabular-nums text-zinc-500 font-mono">
+                                {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
                             </div>
-                        );
-                    })}
-                </div>
+                            <div className="text-[12px] text-zinc-300 truncate">
+                                {log.userId.split(' ')[0]}
+                            </div>
+                            <div>
+                                <span
+                                    className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium border"
+                                    style={{
+                                        color: color,
+                                        borderColor: `${color}33`,
+                                        backgroundColor: `${color}15`,
+                                    }}
+                                >
+                                    {CLUSTER_TRANSLATIONS[log.cluster]?.slice(0, 8) || log.cluster}
+                                </span>
+                            </div>
+                            <div className="text-[12px] text-zinc-300 truncate">
+                                {log.action}
+                            </div>
+                            <div className="text-[11px] text-zinc-500 truncate">
+                                {log.zone}
+                            </div>
+                            {isSelected && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500" />}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

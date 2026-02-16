@@ -1,8 +1,16 @@
 export type ClusterType =
-  | 'Science' | 'Technology' | 'Economics' | 'Society' | 'Politics' | 'Art'
-  | 'Biology' | 'Psychology' | 'Philosophy' | 'Security' | 'Logistics'
-  | 'Ecology' | 'Information' | 'Health' | 'Exploration' | 'Education'
-  | 'Justice' | 'Communication' | 'Infrastructure';
+  | 'Education'
+  | 'Science'
+  | 'Labor'
+  | 'Culture'
+  | 'Volunteering'
+  | 'Patriotism'
+  | 'Sports'
+  | 'HealthyLifestyle'
+  | 'Media'
+  | 'Diplomacy'
+  | 'Ecology'
+  | 'Tourism';
 
 export type UserStats = Record<ClusterType, number>;
 
@@ -54,7 +62,6 @@ export interface ClusterMetrics {
   activeUnits: number;
   coveragePercent: number;
   roi: number; // Return on Investment (competence growth vs cost)
-  anomalies: number;
 }
 
 export interface GraphEdge {

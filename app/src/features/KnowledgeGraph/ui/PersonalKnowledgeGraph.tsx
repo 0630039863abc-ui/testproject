@@ -5,13 +5,14 @@ import { useSimulation, CLUSTER_TOPICS } from '../../../entities/Simulation/mode
 import * as THREE from 'three';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { getClusterColor, CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
+import { Activity } from 'lucide-react';
 
 interface ComponentProps {
     onNodeClick: (node: any) => void;
 }
 
 const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick }) => {
-    const { activeZone, setActiveZone, logs, currentUser } = useSimulation();
+    const { activeZone, setActiveZone, logs, currentUser, getEventsForTopic } = useSimulation();
     const fgRef = useRef<any>(null);
     const [activeTopic, setActiveTopic] = useState<string | null>(null);
 
@@ -57,9 +58,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
             const now = Date.now();
 
             newLogs.forEach(log => {
-                if (log.userId === currentUser.name) {
-                    clusterPulseTimestamps.current.set(log.cluster, now);
-                }
+                clusterPulseTimestamps.current.set(log.cluster, now);
             });
         }
         lastLogCount.current = logs.length;
@@ -106,13 +105,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
     const graphData = useMemo(() => {
         const nodes: any[] = [];
         const links: any[] = [];
-        const activeClusters = Object.keys(CLUSTER_TOPICS);
-        const inactiveClusters = [
-            'Biology', 'Psychology', 'Philosophy', 'Security', 'Logistics',
-            'Ecology', 'Information', 'Health', 'Exploration', 'Education',
-            'Justice', 'Communication', 'Infrastructure'
-        ];
-        const allClusters = [...activeClusters, ...inactiveClusters];
+        const allClusters = Object.keys(CLUSTER_TOPICS);
 
         const seededRandom = (seed: number) => {
             const x = Math.sin(seed) * 10000;
@@ -125,8 +118,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
         const offsetX = -250;
 
         allClusters.forEach((clusterName: any, index: number) => {
-            const isActive = activeZone === clusterName;
-            const isInactive = inactiveClusters.includes(clusterName);
+            const isActiveNode = activeZone === clusterName;
             const seed = index * 123.456;
 
             const baseX = (seededRandom(seed + 1) - 0.5) * spreadX;
@@ -138,9 +130,9 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
             nodes.push({
                 id: clusterName,
                 group: 'cluster',
-                val: isActive ? 40 : 30,
+                val: isActiveNode ? 40 : 30,
                 color: getClusterColor(clusterName),
-                inactive: isInactive,
+                inactive: false,
                 fx: x, fy: y, fz: z
             });
         });
@@ -196,19 +188,18 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                     });
 
                     if (activeTopic === topic) {
-                        const eventTypes = ['Симпозиум', 'Воркшоп', 'Лекция', 'Хакатон', 'Панель'];
-                        const eventCount = 5;
+                        const events = getEventsForTopic(activeTopic);
                         const subRadius = 60;
-                        const subAngleStep = (2 * Math.PI) / eventCount;
+                        const subAngleStep = (2 * Math.PI) / events.length;
 
-                        for (let j = 0; j < eventCount; j++) {
+                        events.forEach((event: any, j: number) => {
                             const subAngle = j * subAngleStep;
                             const ex = tx + (subRadius * Math.cos(subAngle));
                             const ey = ty + (subRadius * Math.sin(subAngle));
                             const ez = 50;
 
-                            const eventName = `${topic} ${eventTypes[j % eventTypes.length]}`;
-                            const eventId = `Event_${topic}_${j}`;
+                            const eventName = event.label;
+                            const eventId = event.id;
 
                             nodes.push({
                                 id: eventId,
@@ -224,14 +215,14 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                                 target: eventId,
                                 type: 'satellite'
                             });
-                        }
+                        });
                     }
                 });
             }
         }
 
         return { nodes, links };
-    }, [activeZone, activeTopic]);
+    }, [activeZone, activeTopic, getEventsForTopic]);
 
     useEffect(() => {
         if (fgRef.current) {
@@ -247,6 +238,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
     }, []);
 
     const handleNodeClick = useCallback((node: any) => {
+        if (!node) return;
         if (node.group === 'cluster') {
             setActiveZone(activeZone === node.id ? null : node.id);
             setActiveTopic(null);
@@ -268,12 +260,12 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                 onNodeClick={handleNodeClick}
                 linkColor={(link: any) => {
                     if (link.type === 'neural') {
-                        const opacity = Math.max(0.02, 0.15 - (link.distance / 2000));
-                        return `rgba(100, 150, 255, ${opacity})`;
+                        const opacity = Math.max(0.1, 0.4 - (link.distance / 1500));
+                        return `rgba(100, 180, 255, ${opacity})`;
                     }
-                    return 'rgba(255,255,255,0.2)';
+                    return 'rgba(255,255,255,0.4)';
                 }}
-                linkWidth={(link: any) => link.type === 'neural' ? 0.5 : 1}
+                linkWidth={(link: any) => link.type === 'neural' ? 1.5 : 2.5}
                 linkOpacity={0.6}
                 backgroundColor="#050505"
                 nodeThreeObject={(node: any) => {
@@ -338,4 +330,54 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
     );
 };
 
-export const PersonalKnowledgeGraph = React.memo(PersonalKnowledgeGraphComponent);
+// --- ERROR BOUNDARY ---
+
+class GraphErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
+    constructor(props: { children: React.ReactNode }) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error: Error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+        console.error("Knowledge Graph Crash:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="w-full h-full bg-black flex flex-col items-center justify-center border border-blue-500/30 p-4 relative z-50">
+                    <Activity className="text-blue-500 mb-2 animate-pulse" size={32} />
+                    <h3 className="text-white font-orbitron text-sm uppercase text-center mb-1 tracking-widest">НЕЙРОЛИНК ОТКЛЮЧЕН</h3>
+                    <p className="text-blue-400 font-mono text-[10px] max-w-[200px] text-center mb-4 bg-blue-900/20 p-2 rounded">
+                        {this.state.error?.message || "Неизвестная ошибка WebGL"}
+                    </p>
+                    <button
+                        className="px-3 py-1 bg-blue-500/20 border border-blue-500 text-blue-500 text-[10px] font-orbitron uppercase hover:bg-blue-500/40 transition-colors cursor-pointer"
+                        onClick={() => window.location.reload()}
+                    >
+                        ПЕРЕЗАГРУЗИТЬ СОЕДИНЕНИЕ
+                    </button>
+                    <span className="absolute bottom-2 right-2 text-[8px] text-gray-600 font-mono text-center">
+                        КОД_ОШИБКИ: GRAPH_CRASH_0x2
+                    </span>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
+const PersonalKnowledgeGraphWrapped: React.FC<ComponentProps> = (props) => {
+    return (
+        <GraphErrorBoundary>
+            <PersonalKnowledgeGraphComponent {...props} />
+        </GraphErrorBoundary>
+    );
+};
+
+export const PersonalKnowledgeGraph = React.memo(PersonalKnowledgeGraphWrapped);

@@ -2,30 +2,45 @@
 import type { EventLog, ClusterType, ClusterMetrics, UserData, ObservableAction, EvidenceType, GraphEdge } from '../../../types';
 
 // Redefine constants locally to avoid import issues in Worker context if bundler is strict
-const CLUSTERS: ClusterType[] = ['Science', 'Technology', 'Economics', 'Society', 'Politics', 'Art', 'Health'];
+// Redefine constants locally to avoid import issues in Worker context if bundler is strict
+const CLUSTERS: ClusterType[] = [
+    'Education', 'Science', 'Labor', 'Culture', 'Volunteering', 'Patriotism',
+    'Sports', 'HealthyLifestyle', 'Media', 'Diplomacy', 'Ecology', 'Tourism'
+];
+
 const EVENT_CONTEXTS = [
     'ПМЭФ-2026', 'Бизнес-инкубатор', 'Креативный кластер', 'Технопарк', 'Умный Квартал',
     'Био-лаборатория', 'Цифровая Арена', 'Центр Урбанистики', 'Кибер-кафе'
 ];
 
 const CLUSTER_TOPICS: Record<string, string[]> = {
-    'Science': ['Квантовые вычисления', 'Генетическая терапия', 'Космическая логистика', 'Нейроинтерфейсы'],
-    'Technology': ['Когнитивные Технологии', 'Блокчейн-сети', 'Робототехника', 'Зеленая Энергетика'],
-    'Economics': ['Цифровые валюты', 'Цикличная экономика', 'Токенизация активов', 'Алгоритмический трейдинг'],
-    'Society': ['Цифровая демократия', 'Инклюзивность', 'Социальный капитал', 'Новое образование', 'Патриотика'],
-    'Politics': ['Кибербезопасность', 'Глобальное управление', 'Регулирование ИИ', 'Сетевой суверенитет'],
-    'Art': ['NFT-галереи', 'Алгоритмическое искусство', 'Виртуальная мода', 'Интерактивные медиа'],
-    'Health': ['Персонализированная медицина', 'Биохакинг', 'Долголетие', 'Спорт']
+    'Education': ['Новая педагогика', 'EdTech платформы', 'Геймификация', 'Наставничество'],
+    'Science': ['Квантовые вычисления', 'Космос', 'Биотех', 'Нейросети'],
+    'Labor': ['Стартапы', 'Карьерный трек', 'Фриланс', 'Финансовая грамотность'],
+    'Culture': ['Цифровое искусство', 'Креативные индустрии', 'Наследие', 'Дизайн'],
+    'Volunteering': ['Эко-акции', 'Социальная помощь', 'Донорство', 'Зоозащита'],
+    'Patriotism': ['История', 'Поисковые отряды', 'Краеведение', 'Герои нашего времени'],
+    'Sports': ['Киберспорт', 'Воркаут', 'Йога', 'Марафоны'],
+    'HealthyLifestyle': ['Биохакинг', 'Правильное питание', 'Ментал хелс', 'Режим дня'],
+    'Media': ['Блогинг', 'Подкасты', 'Новые медиа', 'Фактчекинг'],
+    'Diplomacy': ['Мягкая сила', 'Культурный обмен', 'Языкознание', 'Переговоры'],
+    'Ecology': ['Переработка', 'Устойчивое развитие', 'Озеленение', 'Климат'],
+    'Tourism': ['Внутренний туризм', 'Экотропы', 'Гастротуры', 'Кемпинг']
 };
 
 const CLUSTER_EVENT_TYPES: Record<string, string[]> = {
-    'Science': ['Симпозиум', 'Воркшоп', 'Лекция', 'Хакатон', 'Панель'],
-    'Technology': ['Демо-день', 'Кодинг-сессия', 'Запуск продукта', 'Конференция', 'Митап'],
-    'Economics': ['Форум', 'Страт-сессия', 'Инвест-питч', 'Круглый стол', 'Аукцион'],
-    'Society': ['Арт-бранч', 'Дискуссия', 'Фестиваль', 'Выставка', 'Перформанс'],
-    'Politics': ['Дебаты', 'Саммит', 'Брифинг', 'Конгресс', 'Семинар'],
-    'Art': ['Вернисаж', 'Показ', 'Инсталляция', 'Концерт', 'Рейв'],
-    'Health': ['Тренировка', 'Чек-ап', 'Медитация', 'Марафон', 'Реабилитация']
+    'Education': ['Лекция', 'Семинар', 'Мастер-класс', 'Курс'],
+    'Science': ['Хакатон', 'Симпозиум', 'Лабораторная', 'Открытие'],
+    'Labor': ['Ярмарка вакансий', 'Питч-сессия', 'Бизнес-завтрак', 'Тренинг'],
+    'Culture': ['Выставка', 'Концерт', 'Перформанс', 'Показ'],
+    'Volunteering': ['Сбор', 'Акция', 'Выезд', 'Помощь'],
+    'Patriotism': ['Встреча', 'Реконструкция', 'Урок мужества', 'Экскурсия'],
+    'Sports': ['Турнир', 'Забег', 'Матч', 'Тренировка'],
+    'HealthyLifestyle': ['Чек-ап', 'Медитация', 'Воркшоп', 'Пробежка'],
+    'Media': ['Стрим', 'Интервью', 'Пресс-тур', 'Медиа-школа'],
+    'Diplomacy': ['Дебаты', 'Форум', 'Модель ООН', 'Круглый стол'],
+    'Ecology': ['Субботник', 'Сбор сырья', 'Лекторий', 'Посадка'],
+    'Tourism': ['Поход', 'Слет', 'Тур', 'Экспедиция']
 };
 
 // --- State ---
@@ -107,13 +122,25 @@ const tick = () => {
         const userIndex = Math.floor(Math.random() * users.length);
         const resident = users[userIndex];
 
-        // Pick cluster
+        // Pick cluster: Balanced selection
         const rand = Math.random();
-        // @ts-ignore
         const primary = resident.stats ? Object.keys(resident.stats).reduce((a, b) => resident.stats[a] > resident.stats[b] ? a : b) : 'Science';
+        const secondary = resident.stats && Object.keys(resident.stats).length > 1
+            ? Object.keys(resident.stats).sort((a, b) => resident.stats[b] - resident.stats[a])[1]
+            : primary;
 
-        let cluster: ClusterType = primary as ClusterType;
-        if (rand > 0.7) cluster = CLUSTERS[Math.floor(Math.random() * CLUSTERS.length)];
+        let cluster: ClusterType;
+
+        if (rand > 0.6) {
+            // 40% absolute randomness for high entropy
+            cluster = CLUSTERS[Math.floor(Math.random() * CLUSTERS.length)];
+        } else if (rand > 0.3) {
+            // 30% swap between primary and secondary
+            cluster = (Math.random() > 0.5 ? primary : secondary) as ClusterType;
+        } else {
+            // 30% stay on primary
+            cluster = primary as ClusterType;
+        }
 
         // Track movement for graph
         // For simplicity, we'll assume the 'primary' cluster is the 'old' cluster for this tick's movement
@@ -164,8 +191,7 @@ const tick = () => {
         if (mIndex !== -1) {
             metrics[mIndex] = {
                 ...metrics[mIndex],
-                activeUnits: metrics[mIndex].activeUnits + 1,
-                anomalies: evidence === 'Low' ? metrics[mIndex].anomalies + 1 : metrics[mIndex].anomalies
+                activeUnits: metrics[mIndex].activeUnits + 1
             };
         }
     }

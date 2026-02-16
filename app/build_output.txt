@@ -1,0 +1,33 @@
+
+> app@0.0.0 build
+> tsc -b && vite build
+
+src/features/AdminDashboard/ui/StrategicVoronoiMap.tsx(1,55): error TS6133: 'Suspense' is declared but its value is never read.
+src/features/AdminDashboard/ui/StrategicVoronoiMap.tsx(6,1): error TS6192: All imports in import declaration are unused.
+src/features/Telemetry/ui/TelemetryStream.tsx(359,53): error TS2551: Property 'Technology' does not exist on type 'UserStats'. Did you mean 'Ecology'?
+src/features/Telemetry/ui/TelemetryStream.tsx(360,34): error TS7053: Element implicitly has an 'any' type because expression of type '"Society"' can't be used to index type 'UserStats'.
+  Property 'Society' does not exist on type 'UserStats'.
+src/features/Telemetry/ui/TelemetryStream.tsx(361,34): error TS7053: Element implicitly has an 'any' type because expression of type '"Art"' can't be used to index type 'UserStats'.
+  Property 'Art' does not exist on type 'UserStats'.
+src/features/Telemetry/ui/TelemetryStream.tsx(362,34): error TS7053: Element implicitly has an 'any' type because expression of type '"Economics"' can't be used to index type 'UserStats'.
+  Property 'Economics' does not exist on type 'UserStats'.
+src/features/Telemetry/ui/TelemetryStream.tsx(363,34): error TS7053: Element implicitly has an 'any' type because expression of type '"Politics"' can't be used to index type 'UserStats'.
+  Property 'Politics' does not exist on type 'UserStats'.
+src/pages/physical/ui/PhysicalPage.tsx(53,53): error TS2551: Property 'Technology' does not exist on type 'UserStats'. Did you mean 'Ecology'?
+src/pages/physical/ui/PhysicalPage.tsx(54,34): error TS7053: Element implicitly has an 'any' type because expression of type '"Society"' can't be used to index type 'UserStats'.
+  Property 'Society' does not exist on type 'UserStats'.
+src/pages/physical/ui/PhysicalPage.tsx(55,34): error TS7053: Element implicitly has an 'any' type because expression of type '"Art"' can't be used to index type 'UserStats'.
+  Property 'Art' does not exist on type 'UserStats'.
+src/pages/physical/ui/PhysicalPage.tsx(56,34): error TS7053: Element implicitly has an 'any' type because expression of type '"Economics"' can't be used to index type 'UserStats'.
+  Property 'Economics' does not exist on type 'UserStats'.
+src/pages/physical/ui/PhysicalPage.tsx(57,34): error TS7053: Element implicitly has an 'any' type because expression of type '"Politics"' can't be used to index type 'UserStats'.
+  Property 'Politics' does not exist on type 'UserStats'.
+src/pages/user/ui/UserPage.tsx(80,84): error TS2551: Property 'Technology' does not exist on type 'UserStats'. Did you mean 'Ecology'?
+src/shared/ui/Holocard.tsx(3,1): error TS6133: 'motion' is declared but its value is never read.
+src/widgets/AppHeader.tsx(3,27): error TS2307: Cannot find module '../shared/ui/TabButton' or its corresponding type declarations.
+src/widgets/LayoutShell.tsx(3,1): error TS6133: 'HUD_COLORS' is declared but its value is never read.
+src/widgets/VenueScene.tsx(12,7): error TS2820: Type '"Technology"' is not assignable to type 'ClusterType'. Did you mean '"Ecology"'?
+src/widgets/VenueScene.tsx(13,7): error TS2322: Type '"Economics"' is not assignable to type 'ClusterType'.
+src/widgets/VenueScene.tsx(14,7): error TS2322: Type '"Society"' is not assignable to type 'ClusterType'.
+src/widgets/VenueScene.tsx(15,7): error TS2322: Type '"Politics"' is not assignable to type 'ClusterType'.
+src/widgets/VenueScene.tsx(16,7): error TS2322: Type '"Art"' is not assignable to type 'ClusterType'.

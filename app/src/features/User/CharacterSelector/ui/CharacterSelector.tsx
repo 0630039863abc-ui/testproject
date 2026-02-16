@@ -34,7 +34,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({ themeColor
                     <path d="M40,60 L120,40 L200,60 L280,40" stroke="url(#lineGrad)" strokeWidth="1" fill="none" className="animate-pulse" style={{ animationDelay: '1s' }} />
                 </svg>
 
-                <div className="grid grid-cols-4 gap-4 p-4 relative z-10">
+                <div className="grid grid-cols-3 gap-4 p-4 relative z-10">
                     {selectableUsers.map((user, idx) => {
                         const isActive = currentUser.id === user.id;
                         // Stagger animation for nodes

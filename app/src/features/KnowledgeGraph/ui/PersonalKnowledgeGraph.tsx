@@ -84,6 +84,55 @@ function createNebulae(clusterNodes: { fx: number; fy: number; fz: number; color
     return nebulaGroup;
 }
 
+function createExplosion(position: THREE.Vector3, color: string, scene: THREE.Scene) {
+    const count = 40;
+    const positions = new Float32Array(count * 3);
+    const velocities: THREE.Vector3[] = [];
+
+    for (let i = 0; i < count; i++) {
+        positions[i * 3] = position.x;
+        positions[i * 3 + 1] = position.y;
+        positions[i * 3 + 2] = position.z;
+        velocities.push(new THREE.Vector3(
+            (Math.random() - 0.5) * 4,
+            (Math.random() - 0.5) * 4,
+            (Math.random() - 0.5) * 4
+        ));
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const material = new THREE.PointsMaterial({
+        color, size: 3, transparent: true, opacity: 1,
+        blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+    });
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
+
+    let frame = 0;
+    const maxFrames = 60;
+    const animateExplosion = () => {
+        frame++;
+        const pos = points.geometry.attributes.position.array as Float32Array;
+        for (let i = 0; i < count; i++) {
+            pos[i * 3] += velocities[i].x;
+            pos[i * 3 + 1] += velocities[i].y;
+            pos[i * 3 + 2] += velocities[i].z;
+        }
+        points.geometry.attributes.position.needsUpdate = true;
+        material.opacity = 1 - frame / maxFrames;
+
+        if (frame < maxFrames) {
+            requestAnimationFrame(animateExplosion);
+        } else {
+            scene.remove(points);
+            geometry.dispose();
+            material.dispose();
+        }
+    };
+    requestAnimationFrame(animateExplosion);
+}
+
 interface ComponentProps {
     onNodeClick: (node: any) => void;
 }
@@ -100,6 +149,8 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
     const animationFrameId = useRef<number>(0);
 
     const clusterGroups = useRef<Map<string, THREE.Group>>(new Map());
+    const linkParticles = useRef<Map<string, { points: THREE.Points; offsets: Float32Array }>>(new Map());
+    const hoveredNode = useRef<string | null>(null);
 
     // Detect new logs and register pulse timestamps
     useEffect(() => {
@@ -333,9 +384,35 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
 
     const handleNodeClick = useCallback((node: any) => {
         if (!node) return;
+
         if (node.group === 'cluster') {
-            setActiveZone(activeZone === node.id ? null : node.id);
+            const isDeselecting = activeZone === node.id;
+            setActiveZone(isDeselecting ? null : node.id);
             setActiveTopic(null);
+
+            if (fgRef.current) {
+                if (isDeselecting) {
+                    fgRef.current.cameraPosition(
+                        { x: 200, y: 150, z: 900 },
+                        { x: 0, y: 0, z: 0 },
+                        1500
+                    );
+                } else {
+                    const distance = 250;
+                    fgRef.current.cameraPosition(
+                        { x: node.fx + distance * 0.3, y: node.fy + distance * 0.2, z: node.fz + distance },
+                        { x: node.fx, y: node.fy, z: node.fz },
+                        1500
+                    );
+
+                    const scene = fgRef.current.scene();
+                    createExplosion(
+                        new THREE.Vector3(node.fx, node.fy, node.fz),
+                        node.color,
+                        scene
+                    );
+                }
+            }
         } else if (node.group === 'topic') {
             setActiveTopic(prev => prev === node.id ? null : node.id);
             onNodeClick({ ...node, title: node.id });
@@ -352,6 +429,55 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                 nodeLabel="id"
                 nodeColor="color"
                 onNodeClick={handleNodeClick}
+                onNodeHover={(node: any) => {
+                    hoveredNode.current = node?.id || null;
+
+                    clusterGroups.current.forEach((group, clusterId) => {
+                        const core = clusterMeshes.current.get(clusterId);
+                        const halo = group.getObjectByName('halo') as THREE.Mesh;
+
+                        if (!node || node.group !== 'cluster') {
+                            // Reset all
+                            if (core) {
+                                (core.material as THREE.MeshStandardMaterial).opacity = 0.95;
+                                core.scale.setScalar(1);
+                            }
+                            if (halo) (halo.material as THREE.MeshBasicMaterial).opacity = 0.08;
+                            return;
+                        }
+
+                        if (clusterId === node.id) {
+                            // Highlight hovered
+                            core?.scale.setScalar(1.3);
+                            if (halo) (halo.material as THREE.MeshBasicMaterial).opacity = 0.25;
+                        } else {
+                            // Check if connected
+                            const isConnected = graphData.links.some((l: any) => {
+                                const s = typeof l.source === 'object' ? l.source.id : l.source;
+                                const t = typeof l.target === 'object' ? l.target.id : l.target;
+                                return (s === node.id && t === clusterId) || (t === node.id && s === clusterId);
+                            });
+
+                            if (isConnected) {
+                                if (core) (core.material as THREE.MeshStandardMaterial).opacity = 0.8;
+                            } else {
+                                if (core) (core.material as THREE.MeshStandardMaterial).opacity = 0.2;
+                                if (halo) (halo.material as THREE.MeshBasicMaterial).opacity = 0.02;
+                            }
+                        }
+                    });
+                }}
+                onBackgroundClick={() => {
+                    setActiveZone(null);
+                    setActiveTopic(null);
+                    if (fgRef.current) {
+                        fgRef.current.cameraPosition(
+                            { x: 200, y: 150, z: 900 },
+                            { x: 0, y: 0, z: 0 },
+                            1500
+                        );
+                    }
+                }}
                 linkColor={(link: any) => {
                     if (link.type === 'neural') {
                         const opacity = Math.max(0.1, 0.4 - (link.distance / 1500));
@@ -361,6 +487,60 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                 }}
                 linkWidth={(link: any) => link.type === 'neural' ? 1.5 : 2.5}
                 linkOpacity={0.6}
+                linkThreeObject={(link: any) => {
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                    const key = `${sourceId}-${targetId}`;
+
+                    if (link.type !== 'neural') return undefined as any;
+
+                    const particleCount = 8;
+                    const positions = new Float32Array(particleCount * 3);
+                    const offsets = new Float32Array(particleCount);
+
+                    for (let i = 0; i < particleCount; i++) {
+                        offsets[i] = i / particleCount;
+                    }
+
+                    const geometry = new THREE.BufferGeometry();
+                    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+                    const color = new THREE.Color(link.source?.color || '#64b4ff');
+                    const material = new THREE.PointsMaterial({
+                        color: color,
+                        size: 2.5,
+                        transparent: true,
+                        opacity: 0.8,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                        sizeAttenuation: true,
+                    });
+
+                    const points = new THREE.Points(geometry, material);
+                    linkParticles.current.set(key, { points, offsets });
+                    return points;
+                }}
+                linkPositionUpdate={(obj: any, { start, end }: any, link: any) => {
+                    if (link.type !== 'neural' || !obj) return;
+
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                    const key = `${sourceId}-${targetId}`;
+
+                    const data = linkParticles.current.get(key);
+                    if (!data) return;
+
+                    const positions = data.points.geometry.attributes.position.array as Float32Array;
+                    const time = Date.now() * 0.0003;
+
+                    for (let i = 0; i < data.offsets.length; i++) {
+                        const t = (data.offsets[i] + time) % 1;
+                        positions[i * 3] = start.x + (end.x - start.x) * t;
+                        positions[i * 3 + 1] = start.y + (end.y - start.y) * t;
+                        positions[i * 3 + 2] = start.z + (end.z - start.z) * t;
+                    }
+                    data.points.geometry.attributes.position.needsUpdate = true;
+                }}
                 backgroundColor="#000000"
                 nodeThreeObject={(node: any) => {
                     const group = new THREE.Group();

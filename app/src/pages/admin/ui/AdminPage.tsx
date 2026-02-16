@@ -1,7 +1,6 @@
 import React, { useState, Suspense } from 'react';
 import { AppHeader } from '../../../widgets/AppHeader';
 import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
-import { LayoutGroup, motion } from 'framer-motion';
 import { Loading } from '../../../shared/ui/Loading';
 import { LayoutShell } from '../../../widgets/LayoutShell';
 
@@ -9,6 +8,7 @@ const StrategicVoronoiMap = React.lazy(() => import('../../../features/AdminDash
 const KPIBento = React.lazy(() => import('../../../features/AdminDashboard/ui/KPIBento').then(module => ({ default: module.KPIBento })));
 const LiveOccupancy = React.lazy(() => import('../../../features/AdminDashboard/ui/LiveOccupancy').then(module => ({ default: module.LiveOccupancy })));
 const TelemetryTableModule = React.lazy(() => import('../../../features/Telemetry/ui/TelemetryStream').then(module => ({ default: module.TelemetryTableModule })));
+const DemographicMatrix = React.lazy(() => import('../../../features/AdminDashboard/ui/DemographicMatrix').then(module => ({ default: module.DemographicMatrix })));
 
 interface StrategicCommandProps {
     currentView: 'physical' | 'user' | 'admin';
@@ -20,51 +20,44 @@ export const StrategicCommand: React.FC<StrategicCommandProps> = ({ currentView,
     const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
     return (
-        <LayoutGroup>
-            <LayoutShell>
-                {/* Global Header */}
-                <AppHeader currentView={currentView} onChangeView={onChangeView} />
+        <LayoutShell>
+            <AppHeader currentView={currentView} onChangeView={onChangeView} />
 
-                <Suspense fallback={<Loading />}>
-                    <div className="flex-1 w-full p-6 grid grid-cols-12 grid-rows-12 gap-6 relative z-10 overflow-hidden">
-
-                        {/* Block 1: Main Strategic Voronoi Map (Top/Center Left - Spans 8 cols, 8 rows) */}
-                        <motion.div
-                            layout
-                            className="col-span-8 row-span-8 relative"
-                        >
-                            <StrategicVoronoiMap />
-                        </motion.div>
-
-                        {/* Right Analytical Panel (Column 3 - Spans 4 cols, 12 rows) */}
-                        <div className="col-span-4 row-span-12 flex flex-col gap-6 h-full">
-
-                            {/* Block 2: Live Occupancy */}
-                            <motion.div layout className="flex-none">
-                                <LiveOccupancy />
-                            </motion.div>
-
-                            {/* Predictive Analytics: Telemetry Stream */}
-                            <div className="flex-1 min-h-0 glass-card border border-prism/10 rounded-sm overflow-hidden flex flex-col relative group/stream shadow-2xl">
-                                <div className="absolute inset-0 bg-void/20 pointer-events-none" />
-                                <TelemetryTableModule
-                                    recentLogs={logs.slice(0, 15)}
-                                    selectedRowId={selectedRowId}
-                                    onSelect={setSelectedRowId}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Block 3: Bottom Panel (Spans 8 cols, 4 rows) */}
-                        <motion.div
-                            layout
-                            className="col-span-8 row-span-4"
-                        >
-                            <KPIBento />
-                        </motion.div>
+            <Suspense fallback={<Loading />}>
+                <div
+                    className="flex-1 w-full p-4 grid grid-cols-12 gap-4 relative z-10 overflow-hidden"
+                    style={{ gridTemplateRows: '2fr 1fr 1fr' }}
+                >
+                    {/* Voronoi Map — Hero (col 1-8, row 1-3) */}
+                    <div className="col-span-8 row-span-3">
+                        <StrategicVoronoiMap />
                     </div>
-                </Suspense>
-            </LayoutShell>
-        </LayoutGroup>
+
+                    {/* Activity Matrix (col 9-12, row 1-2) */}
+                    <div className="col-span-4 row-span-2">
+                        <LiveOccupancy />
+                    </div>
+
+                    {/* Telemetry Stream (col 9-12, row 3) */}
+                    <div className="col-span-4 row-span-1 flex flex-col rounded-xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+                        <TelemetryTableModule
+                            recentLogs={logs.slice(0, 15)}
+                            selectedRowId={selectedRowId}
+                            onSelect={setSelectedRowId}
+                        />
+                    </div>
+
+                    {/* Rating (col 1-4, row 4) */}
+                    <div className="col-span-4">
+                        <KPIBento />
+                    </div>
+
+                    {/* Demographic Matrix (col 5-12, row 4) */}
+                    <div className="col-span-8">
+                        <DemographicMatrix />
+                    </div>
+                </div>
+            </Suspense>
+        </LayoutShell>
     );
 };

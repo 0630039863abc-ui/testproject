@@ -3,73 +3,127 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Float, Html } from '@react-three/drei';
 import { Delaunay } from 'd3-delaunay';
 import * as THREE from 'three';
-import { CLUSTER_COLORS, CLUSTER_TRANSLATIONS, HUD_COLORS } from '../../../shared/lib/tokens';
-import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
+import { Activity } from 'lucide-react';
 import clsx from 'clsx';
+
+import { CLUSTER_COLORS, CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
+import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
+
+// --- UTILS ---
+
+const isPointInPolygon = (point: [number, number], vs: [number, number][]) => {
+    let x = point[0], y = point[1];
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        let xi = vs[i][0], yi = vs[i][1];
+        let xj = vs[j][0], yj = vs[j][1];
+        let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+};
 
 type MapPoint = [number, number];
 
-const getRandomPointInPolygon = (points: [number, number][]): [number, number] => {
-    if (points.length < 3) return [0, 0];
+// --- COMPONENTS ---
 
-    // Centroid
-    let cx = 0, cy = 0;
-    points.forEach(p => { cx += p[0]; cy += p[1]; });
-    cx /= points.length;
-    cy /= points.length;
+/**
+ * Optimized Spark System using InstancedMesh
+ */
+const InstancedSparks = ({ count = 200, cells = [] }: { count?: number, cells?: any[] }) => {
+    const meshRef = useRef<THREE.InstancedMesh>(null);
+    const { clusterMetrics } = useSimulation();
+    const prevPulses = useRef<Record<string, number>>({});
 
-    // Pick a random triangle in the fan from centroid
-    const idx = Math.floor(Math.random() * (points.length - 1));
-    const p1 = points[idx];
-    const p2 = points[idx + 1];
+    // Internal state for particles
+    const particles = useMemo(() => {
+        return Array.from({ length: count }).map(() => ({
+            active: false,
+            pos: new THREE.Vector3(),
+            vel: new THREE.Vector3(),
+            life: 0,
+            maxLife: 1,
+            color: new THREE.Color()
+        }));
+    }, [count]);
 
-    // Random point in triangle (Barycentric)
-    let r1 = Math.random();
-    let r2 = Math.random();
-    if (r1 + r2 > 1) {
-        r1 = 1 - r1;
-        r2 = 1 - r2;
-    }
+    useFrame((_state, delta) => {
+        if (!meshRef.current) return;
 
-    const x = cx + r1 * (p1[0] - cx) + r2 * (p2[0] - cx);
-    const y = cy + r1 * (p1[1] - cy) + r2 * (p2[1] - cy);
+        const dummy = new THREE.Object3D();
+        let activeIdx = 0;
 
-    return [x, y];
-};
+        particles.forEach((p) => {
+            if (p.active) {
+                p.life -= delta * 1.5;
+                if (p.life <= 0) {
+                    p.active = false;
+                } else {
+                    p.pos.addScaledVector(p.vel, delta);
+                    dummy.position.copy(p.pos);
+                    const scale = (p.life / p.maxLife) * 0.15;
+                    dummy.scale.set(scale, scale, scale);
+                    dummy.updateMatrix();
+                    meshRef.current!.setMatrixAt(activeIdx, dummy.matrix);
+                    meshRef.current!.setColorAt(activeIdx, p.color);
+                    activeIdx++;
+                }
+            }
+        });
 
-const Spark = ({ position, color, onMount }: { position: [number, number, number], color: string, onMount: () => () => void }) => {
-    const meshRef = useRef<THREE.Mesh>(null);
-    const [opacity, setOpacity] = useState(1);
-    const [scale, setScale] = useState(1);
-
-    useEffect(onMount, []);
-
-    useFrame(() => {
-        if (meshRef.current) {
-            setOpacity(prev => prev * 0.92); // Fade out opacity
-            setScale(prev => prev * 0.95); // Shrink size
+        // Hide remaining instances
+        dummy.scale.set(0, 0, 0);
+        for (let i = activeIdx; i < count; i++) {
+            dummy.updateMatrix();
+            meshRef.current.setMatrixAt(i, dummy.matrix);
         }
+
+        meshRef.current.instanceMatrix.needsUpdate = true;
+        if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
     });
 
+    // Listen to pulses from simulation
+    useEffect(() => {
+        clusterMetrics.forEach(m => {
+            const prev = prevPulses.current[m.name] || 0;
+            if (m.activeUnits > prev) {
+                // Find the cell for this cluster to get its centroid
+                const cell = cells.find(c => c.name === m.name);
+                const emissionPos = cell ? new THREE.Vector3(cell.centroid[0], cell.centroid[1], 0.2) : new THREE.Vector3(0, 0, 0.5);
+
+                // Emit 5 sparks for this pulse
+                for (let i = 0; i < 5; i++) {
+                    const p = particles.find(pt => !pt.active);
+                    if (p) {
+                        p.active = true;
+                        p.life = 1.0;
+                        p.maxLife = 1.0;
+                        p.color.set(CLUSTER_COLORS[m.name] || '#ffffff');
+
+                        // Emit from cluster center
+                        p.pos.copy(emissionPos);
+                        p.vel.set(
+                            (Math.random() - 0.5) * 2,
+                            (Math.random() - 0.5) * 2,
+                            Math.random() * 2 + 0.5
+                        );
+                    }
+                }
+            }
+            prevPulses.current[m.name] = m.activeUnits;
+        });
+    }, [clusterMetrics, particles, cells]);
+
     return (
-        <mesh position={position} ref={meshRef} scale={scale}>
-            <sphereGeometry args={[0.08, 8, 8]} />
-            <meshStandardMaterial
-                color={color}
-                emissive={color}
-                emissiveIntensity={15}
-                transparent
-                opacity={opacity}
-            />
-            <pointLight distance={1} intensity={15 * opacity} color={color} />
-        </mesh>
+        <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+            <sphereGeometry args={[1, 6, 6]} />
+            <meshStandardMaterial emissiveIntensity={10} transparent />
+        </instancedMesh>
     );
 };
 
-const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone, onPointerEnter, onPointerLeave, pulse }: any) => {
+const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone, onPointerEnter, onPointerLeave, centroid }: any) => {
     const meshRef = useRef<THREE.Mesh>(null);
-    const [sparks, setSparks] = useState<Array<{ id: number; position: [number, number, number]; color: string }>>([]);
-    const sparkId = useRef(0);
 
     const shape = useMemo(() => {
         const s = new THREE.Shape();
@@ -82,45 +136,24 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
         return s;
     }, [points]);
 
-    const lineArray = useMemo(() => {
-        if (!points || points.length === 0) return new Float32Array(0);
-        const arr = [];
-        for (const p of points) arr.push(p[0], p[1], 0.01);
-        arr.push(points[0][0], points[0][1], 0.01);
-        return new Float32Array(arr);
+    const linePoints = useMemo(() => {
+        if (!points || points.length === 0) return [];
+        const pts = points.map((p: any) => new THREE.Vector3(p[0], p[1], 0.01));
+        pts.push(new THREE.Vector3(points[0][0], points[0][1], 0.01));
+        return pts;
     }, [points]);
-
-    const centroid = useMemo(() => {
-        if (!points || points.length === 0) return [0, 0, 0];
-        let x = 0, y = 0;
-        points.forEach((p: [number, number]) => { x += p[0]; y += p[1]; });
-        return [x / points.length, y / points.length, 0.2];
-    }, [points]);
-
-    useEffect(() => {
-        if (pulse) {
-            const [x, y] = getRandomPointInPolygon(points);
-            const id = sparkId.current++;
-            setSparks(prev => [
-                ...prev,
-                { id, position: [x, y, 0.5], color: color }
-            ]);
-        }
-    }, [pulse, points, color]);
 
     useFrame((state) => {
         if (meshRef.current) {
             const targetZ = active ? 0.6 : 0;
-            meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, targetZ, 0.1);
-
-            // Ambient Pulse Logic
+            meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, targetZ, 0.15);
             const material = meshRef.current.material as THREE.MeshStandardMaterial;
             if (!active) {
-                const pulse = Math.sin(state.clock.elapsedTime * 0.8 + label.length) * 0.1 + 0.3;
-                material.opacity = pulse;
-                material.emissiveIntensity = pulse * 2;
+                const breathing = Math.sin(state.clock.elapsedTime * 1.5 + label.length) * 0.05 + 0.2;
+                material.opacity = breathing;
+                material.emissiveIntensity = breathing * 2;
             } else {
-                material.opacity = 0.95;
+                material.opacity = 0.85;
                 material.emissiveIntensity = 4;
             }
         }
@@ -128,93 +161,96 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
 
     if (!points || points.length === 0) return null;
 
+    const translatedLabel = CLUSTER_TRANSLATIONS[label] || label;
+
     return (
         <group>
             <mesh
                 ref={meshRef}
-                onPointerOver={(e) => {
-                    e.stopPropagation();
-                    onHover(label);
-                }}
-                onPointerOut={(e) => {
-                    e.stopPropagation();
-                    onHover(null);
-                }}
-                onPointerEnter={(e) => {
-                    e.stopPropagation();
-                    onPointerEnter(label);
-                }}
-                onPointerLeave={(e) => {
-                    e.stopPropagation();
-                    onPointerLeave(null);
-                }}
+                onPointerOver={(e) => { e.stopPropagation(); onHover(label); }}
+                onPointerOut={(e) => { e.stopPropagation(); onHover(null); }}
+                onPointerEnter={(e) => { e.stopPropagation(); onPointerEnter(label); }}
+                onPointerLeave={(e) => { e.stopPropagation(); onPointerLeave(null); }}
             >
                 <shapeGeometry args={[shape]} />
                 <meshStandardMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={0.3}
+                    emissiveIntensity={0.5}
                     transparent
-                    opacity={0.25}
+                    opacity={0.2}
                     side={THREE.DoubleSide}
                 />
 
-                <line>
-                    <bufferGeometry>
-                        <bufferAttribute
-                            attach="attributes-position"
-                            count={points.length + 1}
-                            array={lineArray}
-                            itemSize={3}
-                            args={[lineArray, 3]}
-                        />
-                    </bufferGeometry>
-                    <lineBasicMaterial color={color} transparent opacity={active ? 1 : 0.3} />
-                </line>
-
-                {(active || activeZone === label) && (
-                    <Html position={[0, 0, 0.5]} center pointerEvents="none">
-                        <div className={`px-2 py-1 rounded backdrop-blur-md border ${activeZone === label ? 'border-white bg-white/10' : 'border-white/20 bg-black/40'}`}>
-                            <div className="text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
-                                {CLUSTER_TRANSLATIONS[label] || label}
-                            </div>
-                            <div className="text-[7px] text-white/60 font-mono text-center">{Math.round(count)} ЮНИТОВ</div>
-                        </div>
-                    </Html>
-                )}
+                {/* High-End Border */}
+                <group>
+                    {linePoints.length > 0 && (
+                        <line>
+                            <bufferGeometry attach="geometry" onUpdate={self => self.setFromPoints(linePoints)} />
+                            <lineBasicMaterial
+                                attach="material"
+                                color={color}
+                                transparent
+                                opacity={active ? 0.8 : 0.2}
+                                depthWrite={false}
+                                blending={THREE.AdditiveBlending}
+                            />
+                        </line>
+                    )}
+                </group>
             </mesh>
 
-            {sparks.map(spark => (
-                <Spark
-                    key={spark.id}
-                    position={spark.position}
-                    color={spark.color}
-                    onMount={() => {
-                        const timer = setTimeout(() => {
-                            setSparks(prev => prev.filter(s => s.id !== spark.id));
-                        }, 1000);
-                        return () => clearTimeout(timer);
-                    }}
-                />
-            ))}
+            {/* Cluster Label & Count */}
+            {centroid && (
+                <group position={[centroid[0], centroid[1], 0.2]}>
+                    <Text
+                        position={[0, 0.4, 0]}
+                        fontSize={0.25}
+                        color="white"
+                        anchorX="center"
+                        anchorY="middle"
+                        fillOpacity={0.9}
+                    >
+                        {translatedLabel.toUpperCase()}
+                    </Text>
+                    <Text
+                        position={[0, -0.1, 0]}
+                        fontSize={0.5}
+                        color={color}
+                        anchorX="center"
+                        anchorY="middle"
+                        fillOpacity={0.8}
+                    >
+                        {Math.round(count).toLocaleString()}
+                    </Text>
+                    <Text
+                        position={[0, -0.5, 0]}
+                        fontSize={0.15}
+                        color="white"
+                        anchorX="center"
+                        anchorY="middle"
+                        fillOpacity={0.4}
+                    >
+                        EVENTS
+                    </Text>
+                </group>
+            )}
 
-
-            {/* Persistent Data Label (Numerical) */}
-            <Text
-                position={[centroid[0], centroid[1], active ? centroid[2] + 0.6 : centroid[2]]}
-                fontSize={active ? 0.25 : 0.18}
-                color="white"
-                fillOpacity={active ? 1 : 0.4}
-                anchorX="center"
-                anchorY="middle"
-            >
-                {Math.round(count)}
-            </Text>
-
-            {active && (
-                <Html position={[centroid[0], centroid[1] - 0.5, 1]} center pointerEvents="none" zIndexRange={[100, 0]}>
-                    <div className="text-[14px] font-black text-blue-500 uppercase tracking-widest whitespace-nowrap" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
-                        {CLUSTER_TRANSLATIONS[label] || label.toUpperCase()}
+            {(active || activeZone === label) && (
+                <Html position={[0, 0, 1.2]} center pointerEvents="none">
+                    <div className={clsx(
+                        "px-3 py-1.5 rounded-sm backdrop-blur-xl border transition-all duration-300",
+                        activeZone === label ? "border-cyan-400 bg-void/60 shadow-[0_0_20px_rgba(34,211,238,0.2)]" : "border-white/10 bg-black/80"
+                    )}>
+                        <div className="text-[11px] font-orbitron font-black text-white uppercase tracking-widest whitespace-nowrap">
+                            {CLUSTER_TRANSLATIONS[label] || label}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-cyan-400/50" style={{ width: `${Math.min(100, count / 5)}%` }} />
+                            </div>
+                            <div className="text-[8px] text-cyan-400 font-mono-data uppercase">{Math.round(count)} UNIT</div>
+                        </div>
                     </div>
                 </Html>
             )}
@@ -222,273 +258,317 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
     );
 };
 
-const AgentNode = ({ position, name, themeColor, isActive, lastAction }: any) => {
-    const meshRef = useRef<THREE.Mesh>(null);
-    const targetPos = useRef(new THREE.Vector3(...position));
-    const [actionLabel, setActionLabel] = useState<string | null>(null);
+const OptimizedAgents = ({ agents }: { agents: any[] }) => {
+    const meshRef = useRef<THREE.InstancedMesh>(null);
+    const dummy = useMemo(() => new THREE.Object3D(), []);
 
-    // Set initial position once
-    useEffect(() => {
-        if (meshRef.current && meshRef.current.position.length() === 0) {
-            meshRef.current.position.set(position[0], position[1], position[2]);
-        }
-    }, []);
+    useFrame((state, _delta) => {
+        if (!meshRef.current) return;
 
-    useEffect(() => {
-        targetPos.current.set(position[0], position[1], position[2]);
-    }, [position]);
+        agents.forEach((agent, i) => {
+            // Simple lerp for smoothness
+            dummy.position.set(agent.position[0], agent.position[1], agent.position[2]);
+            const s = (agent.isActive ? 1.4 : 1.0) + Math.sin(state.clock.elapsedTime * 4 + i) * 0.1;
+            dummy.scale.set(s, s, s);
+            dummy.updateMatrix();
+            meshRef.current!.setMatrixAt(i, dummy.matrix);
+            meshRef.current!.setColorAt(i, new THREE.Color(agent.themeColor));
+        });
 
-    useEffect(() => {
-        if (lastAction) {
-            setActionLabel(lastAction);
-            const timer = setTimeout(() => setActionLabel(null), 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [lastAction]);
-
-    useFrame((state, delta) => {
-        if (meshRef.current) {
-            // Smooth movement
-            meshRef.current.position.lerp(targetPos.current, delta * 2.5);
-
-            // Subtle pulse
-            const s = (isActive ? 1.3 : 1.0) + Math.sin(state.clock.elapsedTime * 3 + name.length) * 0.1;
-            meshRef.current.scale.setScalar(s);
-        }
+        meshRef.current.instanceMatrix.needsUpdate = true;
+        if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
     });
 
     return (
         <group>
-            <mesh ref={meshRef}>
-                <sphereGeometry args={[0.06, 8, 8]} />
-                <meshStandardMaterial
-                    color={themeColor}
-                    emissive={themeColor}
-                    emissiveIntensity={isActive ? 6 : 1.2}
-                    transparent
-                    opacity={0.9}
-                />
-            </mesh>
+            <instancedMesh ref={meshRef} args={[undefined, undefined, Math.max(1, agents.length)]}>
+                <sphereGeometry args={[0.07, 12, 12]} />
+                <meshStandardMaterial emissiveIntensity={2} transparent opacity={0.9} />
+            </instancedMesh>
 
-            {(isActive || actionLabel) && (
-                <Html
-                    position={position}
-                    center
-                    distanceFactor={15}
-                    pointerEvents="none"
-                    style={{ transition: 'opacity 0.5s' }}
-                >
-                    <div className="flex flex-col items-center gap-1 pointer-events-none select-none">
+            {/* Overlay for active agents */}
+            {agents.map((agent) => (
+                (agent.isActive || agent.lastAction) && (
+                    <Html key={agent.id} position={agent.position} center distanceFactor={15} pointerEvents="none">
                         <div className={clsx(
-                            "px-1.5 py-0.5 rounded text-[7px] font-black uppercase whitespace-nowrap border backdrop-blur-md shadow-lg",
-                            actionLabel ? "bg-blue-600 border-white text-white animate-bounce" : "bg-black/80 border-white/20 text-white/90"
+                            "px-2 py-0.5 rounded-[1px] text-[7px] font-orbitron font-black uppercase whitespace-nowrap border backdrop-blur-md shadow-lg transition-transform duration-300",
+                            agent.lastAction ? "bg-cyan-500 border-white text-white scale-110" : "bg-black/90 border-white/20 text-white/80"
                         )}>
-                            {actionLabel || name.split(' ')[0]}
+                            {agent.lastAction || agent.name.split(' ')[0]}
                         </div>
-                    </div>
-                </Html>
-            )}
+                    </Html>
+                )
+            ))}
         </group>
     );
 };
 
+// --- MAIN COMPONENT ---
+
+// --- ERROR BOUNDARY ---
+
+class VoronoiErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
+    constructor(props: { children: React.ReactNode }) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error: Error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+        console.error("Voronoi Component Crash:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="w-full h-full bg-black flex flex-col items-center justify-center border border-red-500/50 p-4 relative z-50">
+                    <Activity className="text-red-500 mb-2 animate-pulse" size={32} />
+                    <h3 className="text-white font-orbitron text-sm uppercase text-center mb-1 tracking-widest">Visual System Failure</h3>
+                    <p className="text-red-400 font-mono text-[10px] max-w-[200px] text-center mb-4 bg-red-900/20 p-2 rounded">
+                        {this.state.error?.message || "Unknown WebGL Error"}
+                    </p>
+                    <button
+                        className="px-3 py-1 bg-red-500/20 border border-red-500 text-red-500 text-[10px] font-orbitron uppercase hover:bg-red-500/40 transition-colors cursor-pointer"
+                        onClick={() => window.location.reload()}
+                    >
+                        Reboot System
+                    </button>
+                    <span className="absolute bottom-2 right-2 text-[8px] text-gray-600 font-mono text-center">
+                        ERR_CODE: VORONOI_CRASH_0x1
+                    </span>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
+// --- MAIN COMPONENT ---
+
 export const StrategicVoronoiMap: React.FC = () => {
+    return (
+        <VoronoiErrorBoundary>
+            <StrategicVoronoiMapContent />
+        </VoronoiErrorBoundary>
+    );
+};
+
+const StrategicVoronoiMapContent: React.FC = () => {
     const { clusterMetrics, selectableUsers, currentUser, logs } = useSimulation();
     const [hovered, setHovered] = useState<string | null>(null);
     const [activeZone, setActiveZone] = useState<string | null>(null);
-    const prevCounts = useRef<Record<string, number>>({});
-    const [pulses, setPulses] = useState<Record<string, boolean>>({});
 
-    // Track activity bursts
-    useEffect(() => {
-        const newPulses: Record<string, boolean> = {};
-        let hasChanges = false;
-
-        clusterMetrics.forEach(m => {
-            const prev = prevCounts.current[m.name] || 0;
-            if (m.activeUnits > prev) {
-                newPulses[m.name] = true;
-                hasChanges = true;
-            }
-            prevCounts.current[m.name] = m.activeUnits;
-        });
-
-        if (hasChanges) {
-            setPulses(newPulses);
-            const timer = setTimeout(() => setPulses({}), 300);
-            return () => clearTimeout(timer);
-        }
-    }, [clusterMetrics]);
-
-    const activeMetrics = useMemo(() => {
-        return clusterMetrics.filter(m => m.activeUnits > 0);
-    }, [clusterMetrics]);
+    // Filter and sanitize data
+    const activeMetrics = useMemo(() =>
+        clusterMetrics.filter(m => m.activeUnits > 0 && !isNaN(m.activeUnits)),
+        [clusterMetrics]);
 
     const cells = useMemo(() => {
         const count = activeMetrics.length;
         if (count === 0) return [];
 
-        const width = 16;
-        const height = 12;
+        const width = 16.5;
+        const height = 12.5;
 
+        // 1. Generate Points with NaN checks
         const points = activeMetrics.map((_, i) => {
             const angle = (i / count) * Math.PI * 2;
-            const r = 3.5 + Math.sin(i * 1.5) * 1.5;
-            const jitterX = Math.sin(i * 31.5) * 0.8;
-            const jitterY = Math.cos(i * 24.2) * 0.8;
+            const r = 3.8 + Math.sin(i * 1.8) * 1.2;
+            const x = Math.cos(angle) * r + Math.sin(i * 12) * 0.5;
+            const y = Math.sin(angle) * r + Math.cos(i * 8) * 0.5;
 
-            return [
-                Math.cos(angle) * r + jitterX,
-                Math.sin(angle) * r + jitterY
-            ] as MapPoint;
+            // Safety check
+            if (isNaN(x) || isNaN(y)) return [0, 0] as MapPoint;
+            return [x, y] as MapPoint;
         });
+
+        // 2. Generate Fallback if too few points
+        if (count < 2) {
+            return activeMetrics.map(m => ({
+                name: m.name,
+                points: [[-6, -5], [6, -5], [6, 5], [-6, 5]] as MapPoint[],
+                centroid: [0, 0] as [number, number],
+                color: CLUSTER_COLORS[m.name] || '#ffffff',
+                intensity: m.activeUnits
+            }));
+        }
 
         try {
             const delaunay = Delaunay.from(points);
-            const voronoi = delaunay.voronoi([-width / 3, -height / 3, width / 3, height / 3]);
+            const voronoi = delaunay.voronoi([-width / 2, -height / 2, width / 2, height / 2]);
 
             return activeMetrics.map((m, i) => {
                 const poly = Array.from(voronoi.cellPolygon(i) || []);
+                if (poly.length === 0) return null;
+
                 let cx = 0, cy = 0;
                 poly.forEach(p => { cx += p[0]; cy += p[1]; });
 
                 return {
                     name: m.name,
-                    points: poly,
-                    centroid: [cx / poly.length, cy / poly.length],
+                    points: poly as MapPoint[],
+                    centroid: [cx / poly.length, cy / poly.length] as [number, number],
                     color: CLUSTER_COLORS[m.name] || '#ffffff',
-                    intensity: m.activeUnits,
-                    activeUnits: m.activeUnits
+                    intensity: m.activeUnits
+                };
+            }).filter(Boolean);
+        } catch (e) {
+            console.warn("Voronoi Fallback due to error:", e);
+            // Radial Fallback Layout
+            return activeMetrics.map((m, i) => {
+                const angle = (i / count) * Math.PI * 2;
+                const nextAngle = ((i + 1) / count) * Math.PI * 2;
+                const r = 8;
+                return {
+                    name: m.name,
+                    points: [[0, 0], [Math.cos(angle) * r, Math.sin(angle) * r], [Math.cos(nextAngle) * r, Math.sin(nextAngle) * r]] as MapPoint[],
+                    centroid: [Math.cos(angle + (nextAngle - angle) / 2) * r / 2, Math.sin(angle + (nextAngle - angle) / 2) * r / 2] as [number, number],
+                    color: CLUSTER_COLORS[m.name] || '#ffffff',
+                    intensity: m.activeUnits
                 };
             });
-        } catch (e) {
-            console.error('Voronoi Error:', e);
-            return [];
         }
     }, [activeMetrics]);
 
-    // Map agents to positions
-    const agentsWithPositions = useMemo(() => {
+    const agents = useMemo(() => {
         return selectableUsers.map((user: any, i: number) => {
+            if (!user || !user.id || typeof user.id !== 'string') return null;
+            const userIdSanitized = user.id.trim();
             const primaryCluster = (user.stats && Object.entries(user.stats).sort((a: any, b: any) => b[1] - a[1])[0]?.[0]) || 'Science';
-            const cell = cells.find(c => c.name === primaryCluster);
+            const cell = (cells as any[]).find(c => c.name === primaryCluster);
             if (!cell) return null;
 
-            // Use seeded jitter that drifts slightly
-            const jitterX = Math.sin(i * 17.5) * 1.2;
-            const jitterY = Math.cos(i * 21.2) * 1.2;
+            // Stable pseudo-random position inside cell
+            const seed = i * 42.42;
+            let px = cell.centroid[0] + Math.sin(seed) * 1.5;
+            let py = cell.centroid[1] + Math.cos(seed) * 1.5;
+
+            // Clamp to polygon if needed (simple check)
+            if (!isPointInPolygon([px, py], cell.points)) {
+                px = cell.centroid[0] + Math.sin(seed) * 0.5;
+                py = cell.centroid[1] + Math.cos(seed) * 0.5;
+            }
 
             const lastLog = logs.find(l => l.userId === user.name);
-            const isRecent = lastLog && (Date.now() - lastLog.timestamp < 3000);
+            const isRecent = lastLog && (Date.now() - lastLog.timestamp < 2500);
 
             return {
-                id: user.id,
+                id: userIdSanitized,
                 name: user.name,
-                position: [cell.centroid[0] + jitterX, cell.centroid[1] + jitterY, 0.15] as [number, number, number],
+                position: [px, py, 0.15],
                 themeColor: cell.color,
-                isActive: currentUser.id === user.id,
+                isActive: currentUser.id.trim() === userIdSanitized,
                 lastAction: isRecent ? lastLog.action : null
             };
         }).filter(Boolean);
     }, [selectableUsers, cells, currentUser.id, logs]);
 
-
-    const activeCell = clusterMetrics.find(m => m.name === hovered);
+    const activeCell = activeMetrics.find(m => m.name === hovered);
 
     if (clusterMetrics.length === 0) {
         return (
-            <div className="w-full h-full bg-[#010101] rounded-2xl overflow-hidden border border-white/5 flex flex-col items-center justify-center gap-4">
-                <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                <span className="text-white/20 text-[10px] uppercase font-black tracking-widest">Стыковка...</span>
+            <div className="w-full h-full bg-black flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Activity className="text-cyan-500/20 animate-pulse" size={40} />
+                    <span className="text-[10px] font-orbitron font-black text-white/20 uppercase tracking-[.8em]">CALIBRATING_SYSTEM</span>
+                </div>
             </div>
         );
     }
 
-    const sortedForLegend = [...clusterMetrics]
-        .filter(m => m.activeUnits > 0)
-        .sort((a, b) => b.activeUnits - a.activeUnits)
-        .slice(0, 8);
+    if (activeMetrics.length === 0) {
+        return (
+            <div className="w-full h-full bg-void border border-white/5 flex flex-col items-center justify-center gap-4">
+                <div className="text-cyan-500/10"><Activity size={60} strokeWidth={0.5} /></div>
+                <span className="text-white/20 text-[9px] font-orbitron font-black uppercase tracking-widest">Awaiting Active Nodes...</span>
+            </div>
+        );
+    }
 
     return (
-        <div className="w-full h-full bg-[#00050a] rounded-2xl overflow-hidden border border-blue-900/10 relative group shadow-[inset_0_0_70px_rgba(0,10,20,0.9)]">
-            <div className="absolute top-5 left-6 z-10 pointer-events-none">
-                <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.6em] flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_10px_#60a5fa]" />
-                    ПОНТОН: АРХИПЕЛАГ_v5
-                </h3>
-                <p className="text-[7px] text-blue-300/30 mt-1 font-mono uppercase tracking-[0.1em]">Гибкое Распределение Доменов</p>
+        <div className="w-full h-full relative overflow-hidden rounded-xl border border-white/5 bg-black/20">
+            {/* Top Right HUD */}
+            <div className="absolute top-6 right-8 z-10 text-right pointer-events-none">
+                <div className="text-[18px] font-orbitron font-black text-white tabular-nums tracking-tighter drop-shadow-lg">
+                    {activeCell ? activeCell.activeUnits.toLocaleString() : '---'}
+                </div>
+                <div className="text-[7px] text-cyan-400/50 uppercase font-orbitron font-black tracking-widest mt-0.5">
+                    {activeCell ? `${CLUSTER_TRANSLATIONS[activeCell.name] || activeCell.name} load` : 'SCANNING_CLUSTER'}
+                </div>
             </div>
 
-            <Canvas gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }} camera={{ position: [0, -12, 18], fov: 32 }}>
-                <OrbitControls enableZoom={false} maxPolarAngle={Math.PI / 2.3} minPolarAngle={Math.PI / 4} enablePan={false} />
+            <Canvas gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }} camera={{ position: [0, -10, 16], fov: 32 }}>
+                <OrbitControls enableZoom={false} maxPolarAngle={Math.PI / 2.2} minPolarAngle={Math.PI / 4} enablePan={false} />
                 <ambientLight intensity={1.5} />
-                <pointLight position={[5, 10, 10]} intensity={3} color={HUD_COLORS.secondary} />
+                <pointLight position={[0, 10, 10]} intensity={4} color="#3b82f6" />
 
-                <Float speed={1.2} rotationIntensity={0.05} floatIntensity={0.4}>
-                    <group rotation={[-Math.PI / 10, 0, 0]}>
-                        {cells.map((cell) => (
+                <Float speed={1.5} rotationIntensity={0.05} floatIntensity={0.5}>
+                    <group rotation={[-Math.PI / 12, 0, 0]}>
+                        {/* Cells */}
+                        {cells.map((cell: any) => cell && (
                             <VoronoiCell
                                 key={cell.name}
-                                points={cell.points}
-                                color={cell.color}
-                                label={cell.name}
-                                count={cell.intensity}
+                                {...cell}
                                 active={hovered === cell.name}
-                                pulse={pulses[cell.name]}
                                 onHover={setHovered}
                                 activeZone={activeZone}
                                 onPointerEnter={setActiveZone}
                                 onPointerLeave={setActiveZone}
+                                label={cell.name}
+                                count={cell.intensity}
                             />
                         ))}
 
-                        {/* Agents Visualization */}
-                        {agentsWithPositions.map((agent: any) => (
-                            <AgentNode
-                                key={agent.id}
-                                position={agent.position}
-                                name={agent.name}
-                                themeColor={agent.themeColor}
-                                isActive={agent.isActive}
-                                lastAction={agent.lastAction}
-                            />
-                        ))}
+                        {/* Agents */}
+                        <OptimizedAgents agents={agents} />
 
-                        <gridHelper args={[24, 12]} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.1]}>
-                            <meshBasicMaterial color="#00ffff" transparent opacity={0.02} />
+                        {/* Sparks */}
+                        <InstancedSparks cells={cells} />
+
+                        {/* Connection to nexus core */}
+                        <gridHelper args={[30, 20]} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.2]}>
+                            <meshBasicMaterial attach="material" color="#22d3ee" transparent opacity={0.02} />
                         </gridHelper>
+
+                        {/* Decorative Radial Grid */}
+                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.3]}>
+                            <ringGeometry args={[0, 15, 6, 1]} />
+                            <meshBasicMaterial color="#22d3ee" transparent opacity={0.01} wireframe />
+                        </mesh>
                     </group>
                 </Float>
             </Canvas>
 
-            <div className="absolute top-5 right-6 text-right pointer-events-none">
-                <div className="text-[16px] font-black text-white tabular-nums tracking-tighter">
-                    {activeCell ? activeCell.activeUnits : 'ОЖИДАНИЕ'}
-                </div>
-                <div className="text-[7px] text-blue-300/30 uppercase font-black tracking-widest mt-0.5">
-                    {activeCell && hovered ? `${CLUSTER_TRANSLATIONS[hovered] || hovered} ЕМКОСТЬ` : 'ВЫБЕРИТЕ ОСТРОВ'}
-                </div>
-            </div>
-
-            <div className="absolute bottom-5 left-6 right-6 flex justify-between items-end pointer-events-none">
-                <div className="flex gap-4">
-                    {sortedForLegend.map(m => (
-                        <div key={m.name} className="flex flex-col gap-1">
-                            <div className="w-10 h-0.5 bg-blue-900/10 overflow-hidden">
+            {/* Bottom HUD: Clusters Legend */}
+            <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end pointer-events-none">
+                <div className="flex gap-5">
+                    {activeMetrics.slice(0, 6).map(m => (
+                        <div key={m.name} className="group/item flex flex-col gap-1.5 transition-opacity duration-300" style={{ opacity: !hovered || hovered === m.name ? 1 : 0.2 }}>
+                            <div className="h-0.5 w-8 bg-white/5 rounded-full overflow-hidden">
                                 <div className="h-full" style={{ width: '100%', backgroundColor: CLUSTER_COLORS[m.name] }} />
                             </div>
-                            <span className="text-[6px] font-black text-blue-300/20 uppercase tracking-tighter">
-                                {(CLUSTER_TRANSLATIONS[m.name] || m.name).slice(0, 3)}
+                            <span className="text-[7px] font-orbitron font-black text-white/30 uppercase tracking-tighter">
+                                {CLUSTER_TRANSLATIONS[m.name]?.slice(0, 4) || m.name.slice(0, 4)}
                             </span>
                         </div>
                     ))}
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                    <div className="flex items-center gap-1.5">
-                        <span className="text-[8px] font-black text-cyan-400/80 tabular-nums uppercase tracking-widest border border-cyan-400/20 px-2 py-0.5 rounded-sm bg-cyan-900/10">СТАБИЛЬНЫЙ_ПОТОК</span>
+
+                <div className="flex flex-col items-end gap-2">
+                    <div className="px-2 py-1 bg-cyan-400/5 border border-cyan-400/20 rounded-[1px] backdrop-blur-md">
+                        <span className="text-[8px] font-orbitron font-black text-cyan-400 uppercase tracking-[0.2em] animate-pulse">
+                            Link_Status: Secure
+                        </span>
                     </div>
                 </div>
             </div>
+
+            {/* Grid Overlay Texture */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[radial-gradient(#fff_1px,transparent_1px)] bg-[size:20px_20px]"></div>
         </div>
     );
 };

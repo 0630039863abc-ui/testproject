@@ -1,45 +1,32 @@
 export const CLUSTER_COLORS: Record<string, string> = {
-    'Science': '#3b82f6',     // Blue
-    'Technology': '#8b5cf6',  // Violet
-    'Economics': '#eab308',   // Yellow
-    'Society': '#ec4899',     // Pink
-    'Politics': '#ef4444',    // Red
-    'Art': '#06b6d4',         // Cyan
-    'Biology': '#10b981',     // Emerald
-    'Psychology': '#f97316',  // Orange
-    'Philosophy': '#6366f1',  // Indigo
-    'Security': '#64748b',    // Slate
-    'Logistics': '#84cc16',   // Lime
-    'Ecology': '#22c55e',     // Green
-    'Information': '#0ea5e9', // Sky
-    'Health': '#f43f5e',      // Rose
-    'Exploration': '#d946ef', // Fuchsia
-    'Education': '#f59e0b',   // Amber
-    'Justice': '#a855f7',     // Purple
-    'Communication': '#14b8a6',// Teal
-    'Infrastructure': '#6b7280' // Gray
+    'Education': '#3B82F6', // Blue (Science/Knowledge)
+    'HealthyLifestyle': '#10B981', // Emerald (Health/Growth)
+    'Labor': '#F59E0B', // Amber (Work/Economy)
+    'Culture': '#EC4899', // Pink (Art/Creativity)
+    'Volunteering': '#8B5CF6', // Violet (Society/Helping)
+    'Patriotism': '#EF4444', // Red (Country/Politics)
+    'Science': '#06B6D4', // Cyan
+    'Sports': '#F97316', // Orange
+    'Media': '#6366F1', // Indigo
+    'Diplomacy': '#14B8A6', // Teal
+    'Ecology': '#84CC16', // Lime
+    'Tourism': '#EAB308', // Yellow
 };
 
 export const CLUSTER_TRANSLATIONS: Record<string, string> = {
-    'Science': 'НАУЧНЫЙ СЕКТОР',
-    'Technology': 'ТЕХНОЛОГИЧЕСКИЙ КЛАСТЕР',
-    'Economics': 'ЭКОНОМИЧЕСКИЙ БЛОК',
-    'Society': 'ОБЩЕСТВЕННАЯ СРЕДА',
-    'Politics': 'ПОЛИТИЧЕСКИЙ КОРПУС',
-    'Art': 'ИСКУССТВО',
-    'Biology': 'БИОЛОГИЧЕСКИЙ ОТДЕЛ',
-    'Psychology': 'ПСИХОЛОГИЧЕСКИЙ ПРОФИЛЬ',
-    'Philosophy': 'ФИЛОСОФСКИЙ БАЗИС',
-    'Security': 'СЕКТОР БЕЗОПАСНОСТИ',
-    'Logistics': 'ЛОГИСТИЧЕСКАЯ СЕТЬ',
-    'Ecology': 'ЭКОЛОГИЧЕСКИЙ КОНТРОЛЬ',
-    'Information': 'ИНФОРМАЦИОННОЕ ПОЛЕ',
-    'Health': 'ЗДРАВООХРАНЕНИЕ',
-    'Exploration': 'ИССЛЕДОВАТЕЛЬСКИЙ МОДУЛЬ',
-    'Education': 'ОБРАЗОВАТЕЛЬНЫЙ ЦЕНТР',
-    'Justice': 'ПРАВОВОЙ КОНТУР',
-    'Communication': 'КОММУНИКАЦИОННЫЙ УЗЕЛ',
-    'Infrastructure': 'ИНФРАСТРУКТУРНЫЙ БАЗИС'
+    'Education': 'ОБРАЗОВАНИЕ И ЗНАНИЯ',
+    'HealthyLifestyle': 'ЗДОРОВЫЙ ОБРАЗ ЖИЗНИ',
+    'Labor': 'ТРУД И ПРОФЕССИЯ',
+    'Culture': 'КУЛЬТУРА И ИСКУССТВО',
+    'Volunteering': 'ВОЛОНТЁРСТВО',
+    'Patriotism': 'ПАТРИОТИЗМ',
+
+    'Science': 'НАУКА И ТЕХНОЛОГИИ',
+    'Sports': 'СПОРТ',
+    'Media': 'МЕДИА И КОММУНИКАЦИИ',
+    'Diplomacy': 'МЕЖДУНАРОДНЫЕ ОТНОШЕНИЯ',
+    'Ecology': 'ЭКОЛОГИЯ',
+    'Tourism': 'ТУРИЗМ И ПУТЕШЕСТВИЯ',
 };
 
 export const HUD_COLORS = {
@@ -48,14 +35,19 @@ export const HUD_COLORS = {
     alert: '#ef4444', // red-500
     success: '#10b981', // emerald-500
     warning: '#f59e0b', // yellow-500
-    background: '#020202',
-    surface: '#0A0A0B',
-    border: 'rgba(255, 255, 255, 0.1)',
+    background: '#020202', // Deep Void
+    surface: '#0A0A0B', // Metallic Black
+    border: 'rgba(59, 130, 246, 0.1)', // Subtle BlueTint
     text: {
         primary: '#ffffff',
-        secondary: 'rgba(255, 255, 255, 0.6)',
+        secondary: 'rgba(255, 255, 255, 0.7)',
         muted: 'rgba(255, 255, 255, 0.4)',
     }
+};
+
+export const FONTS = {
+    header: '"Orbitron", sans-serif',
+    mono: '"JetBrains Mono", monospace'
 };
 
 export const getClusterColor = (cluster: string): string => {

@@ -1,0 +1,8 @@
+
+> app@0.0.0 build
+> tsc -b && vite build
+
+src/features/AdminDashboard/ui/StrategicVoronoiMap.tsx(1,55): error TS6133: 'Suspense' is declared but its value is never read.
+src/features/AdminDashboard/ui/StrategicVoronoiMap.tsx(6,1): error TS6192: All imports in import declaration are unused.
+src/shared/ui/Holocard.tsx(3,1): error TS6133: 'motion' is declared but its value is never read.
+src/widgets/LayoutShell.tsx(3,1): error TS6133: 'HUD_COLORS' is declared but its value is never read.

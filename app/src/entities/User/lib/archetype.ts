@@ -1,8 +1,6 @@
 export type ClusterName =
-    | 'Science' | 'Technology' | 'Economics' | 'Society' | 'Politics' | 'Art'
-    | 'Biology' | 'Psychology' | 'Philosophy' | 'Security' | 'Logistics'
-    | 'Ecology' | 'Information' | 'Health' | 'Exploration' | 'Education'
-    | 'Justice' | 'Communication' | 'Infrastructure';
+    | 'Education' | 'Science' | 'Labor' | 'Culture' | 'Volunteering' | 'Patriotism'
+    | 'Sports' | 'HealthyLifestyle' | 'Media' | 'Diplomacy' | 'Ecology' | 'Tourism';
 
 interface Archetype {
     title: string;
@@ -23,22 +21,20 @@ export const calculateArchetype = (stats: any): Archetype => {
 
     const mapping: Record<string, Record<string, Archetype>> = {
         Science: {
-            Technology: { title: "System Architect", description: "Prototyping the future via fundamental synthesis." },
-            Society: { title: "Ethical Futurist", description: "Investigating the human impact of scientific breakthroughs." },
-            Art: { title: "Bio-Aesthetician", description: "finding beauty in complex biological structures." },
-            // Self-pair fallback
+            Education: { title: "Nexus Scholar", description: "Fusing fundamental research with advanced pedagogy." },
+            Labor: { title: "R&D Strategist", description: "Driving economic value through scientific innovation." },
+            Culture: { title: "Aesthetic Theoretical", description: "Exploring the intersections of logic and art." },
             Science: { title: "Lead Science Expert", description: "Focused on deep synthesis of scientific domains." }
         },
-        Technology: {
-            Economics: { title: "Venture Engineer", description: "Building scalable systems with high market efficiency." },
-            Politics: { title: "Digital Sovereign", description: "Designing tools for governance in a decentralized world." },
-            // Self-pair fallback
-            Technology: { title: "Technocrat", description: "Optimizing code and infrastructure density." }
+        Education: {
+            Labor: { title: "Skills Architect", description: "Building the future workforce through active knowledge." },
+            Culture: { title: "Cultural Educator", description: "Preserving heritage through modern learning systems." },
+            Education: { title: "Pedagogical Lead", description: "Optimizing knowledge transmission protocols." }
         },
-        Economics: {
-            Politics: { title: "Sovereign Strategist", description: "Master of macro-economic games and geopolitical influence." },
-            // Self-pair fallback
-            Economics: { title: "Market Architect", description: "Modeling financial flows and incentives." }
+        Labor: {
+            Patriotism: { title: "Industrial Guardian", description: "Supporting national interests through economic strength." },
+            HealthyLifestyle: { title: "Human Capital Optimizer", description: "Balancing peak performance with sustainable health." },
+            Labor: { title: "Economic Engineer", description: "Modeling labor flows and corporate efficiency." }
         }
     };
 

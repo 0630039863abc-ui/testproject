@@ -8,12 +8,12 @@ import type { ClusterType } from '../types';
 // --- Configuration ---
 const RADIUS = 6;
 const CLUSTERS: { name: ClusterType, color: string, angle: number }[] = [
-    { name: 'Science', color: CLUSTER_COLORS['Science'], angle: 0 },
-    { name: 'Technology', color: CLUSTER_COLORS['Technology'], angle: 60 },
-    { name: 'Economics', color: CLUSTER_COLORS['Economics'], angle: 120 },
-    { name: 'Society', color: CLUSTER_COLORS['Society'], angle: 180 },
-    { name: 'Politics', color: CLUSTER_COLORS['Politics'], angle: 240 },
-    { name: 'Art', color: CLUSTER_COLORS['Art'], angle: 300 },
+    { name: 'Education', color: CLUSTER_COLORS['Education'], angle: 0 },
+    { name: 'HealthyLifestyle', color: CLUSTER_COLORS['HealthyLifestyle'], angle: 60 },
+    { name: 'Labor', color: CLUSTER_COLORS['Labor'], angle: 120 },
+    { name: 'Culture', color: CLUSTER_COLORS['Culture'], angle: 180 },
+    { name: 'Volunteering', color: CLUSTER_COLORS['Volunteering'], angle: 240 },
+    { name: 'Patriotism', color: CLUSTER_COLORS['Patriotism'], angle: 300 },
 ];
 
 // --- Helpers ---

@@ -49,12 +49,12 @@ export const PhysicalLayer: React.FC<PhysicalLayerProps> = ({ currentView, onCha
     const entityStats = useMemo(() => {
         if (!observedUser) return [];
         return [
-            { subject: 'INT', A: observedUser.stats['Science'] / 10 + 20 },
-            { subject: 'STR', A: observedUser.stats['Technology'] / 10 + 20 },
-            { subject: 'AGI', A: observedUser.stats['Society'] / 10 + 20 },
-            { subject: 'SPI', A: observedUser.stats['Art'] / 10 + 20 },
-            { subject: 'END', A: observedUser.stats['Economics'] / 10 + 20 },
-            { subject: 'LUK', A: observedUser.stats['Politics'] / 10 + 20 },
+            { subject: 'INT', A: observedUser.stats['Education'] / 10 + 20 },
+            { subject: 'STR', A: observedUser.stats['HealthyLifestyle'] / 10 + 20 },
+            { subject: 'AGI', A: observedUser.stats['Labor'] / 10 + 20 },
+            { subject: 'SPI', A: observedUser.stats['Culture'] / 10 + 20 },
+            { subject: 'END', A: observedUser.stats['Volunteering'] / 10 + 20 },
+            { subject: 'LUK', A: observedUser.stats['Patriotism'] / 10 + 20 },
         ];
     }, [observedUser]);
 

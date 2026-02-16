@@ -1,15 +1,14 @@
 import React, { useState, Suspense } from 'react';
 import { AppHeader } from '../../../widgets/AppHeader';
 import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
-import type { ClusterType, ClusterMetrics } from '../../../types';
 import { LayoutGroup, motion } from 'framer-motion';
 import { Loading } from '../../../shared/ui/Loading';
+import { LayoutShell } from '../../../widgets/LayoutShell';
 
 const StrategicVoronoiMap = React.lazy(() => import('../../../features/AdminDashboard/ui/StrategicVoronoiMap').then(module => ({ default: module.StrategicVoronoiMap })));
 const KPIBento = React.lazy(() => import('../../../features/AdminDashboard/ui/KPIBento').then(module => ({ default: module.KPIBento })));
-const AnomalyEngine = React.lazy(() => import('../../../features/AdminDashboard/ui/AnomalyEngine').then(module => ({ default: module.AnomalyEngine })));
 const LiveOccupancy = React.lazy(() => import('../../../features/AdminDashboard/ui/LiveOccupancy').then(module => ({ default: module.LiveOccupancy })));
-const DemographicMatrix = React.lazy(() => import('../../../features/AdminDashboard/ui/DemographicMatrix').then(module => ({ default: module.DemographicMatrix })));
+const TelemetryTableModule = React.lazy(() => import('../../../features/Telemetry/ui/TelemetryStream').then(module => ({ default: module.TelemetryTableModule })));
 
 interface StrategicCommandProps {
     currentView: 'physical' | 'user' | 'admin';
@@ -17,64 +16,55 @@ interface StrategicCommandProps {
 }
 
 export const StrategicCommand: React.FC<StrategicCommandProps> = ({ currentView, onChangeView }) => {
-    const { clusterMetrics } = useSimulation();
-    const [selectedCluster] = useState<ClusterType>('Science');
-    const [showAnomalies, setShowAnomalies] = useState(false);
-
-    // Derived or specific metrics for anomaly engine
-    const currentMetrics = clusterMetrics.find((c: ClusterMetrics) => c.name === selectedCluster);
+    const { logs } = useSimulation();
+    const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
     return (
         <LayoutGroup>
-            <div className="w-full h-screen flex flex-col relative bg-[#050505] overflow-hidden font-['JetBrains_Mono',monospace]">
-                {/* Global Scanline Overlay - Opacity 0.03 */}
-                <div className="absolute inset-0 pointer-events-none z-[60] opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(0,0,255,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] bg-[length:100%_2px,3px_100%] pointer-events-none"></div>
-
+            <LayoutShell>
                 {/* Global Header */}
                 <AppHeader currentView={currentView} onChangeView={onChangeView} />
 
                 <Suspense fallback={<Loading />}>
-                    <div className={`flex-1 w-full p-6 grid grid-cols-[1fr_1fr_400px] grid-rows-3 gap-6 ${showAnomalies ? 'border-[4px] border-red-900/50' : ''} transition-all duration-500 relative z-10 overflow-hidden`}>
+                    <div className="flex-1 w-full p-6 grid grid-cols-12 grid-rows-12 gap-6 relative z-10 overflow-hidden">
 
-                        {/* Block 1: Main Strategic Voronoi Map (Top/Center Left - 2x2) */}
+                        {/* Block 1: Main Strategic Voronoi Map (Top/Center Left - Spans 8 cols, 8 rows) */}
                         <motion.div
                             layout
-                            className="col-span-2 row-span-2 relative"
+                            className="col-span-8 row-span-8 relative"
                         >
                             <StrategicVoronoiMap />
                         </motion.div>
 
-                        {/* Right Analytical Panel (Column 3) - Backdrop Blur MD */}
-                        <div className="col-span-1 row-span-3 flex flex-col gap-6 backdrop-blur-md bg-white/[0.02] p-6 rounded-2xl border border-white/5 shadow-2xl overflow-hidden relative">
-                            {/* Decorative Background Glow */}
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[120px] pointer-events-none" />
+                        {/* Right Analytical Panel (Column 3 - Spans 4 cols, 12 rows) */}
+                        <div className="col-span-4 row-span-12 flex flex-col gap-6 h-full">
 
                             {/* Block 2: Live Occupancy */}
-                            <motion.div layout className="h-[280px]">
+                            <motion.div layout className="flex-none">
                                 <LiveOccupancy />
                             </motion.div>
 
-                            {/* Block 2.5: Threat Engine */}
-                            <motion.div layout className="h-[220px]">
-                                <AnomalyEngine metrics={currentMetrics} showAnomalies={showAnomalies} onToggle={() => setShowAnomalies(!showAnomalies)} />
-                            </motion.div>
-
-                            {/* Predictive Analytics: Demographic Matrix */}
-                            <div className="flex-1 min-h-0 mt-2">
-                                <DemographicMatrix />
+                            {/* Predictive Analytics: Telemetry Stream */}
+                            <div className="flex-1 min-h-0 glass-card border border-prism/10 rounded-sm overflow-hidden flex flex-col relative group/stream shadow-2xl">
+                                <div className="absolute inset-0 bg-void/20 pointer-events-none" />
+                                <TelemetryTableModule
+                                    recentLogs={logs.slice(0, 15)}
+                                    selectedRowId={selectedRowId}
+                                    onSelect={setSelectedRowId}
+                                />
                             </div>
                         </div>
 
-                        {/* Block 3: Bottom Panel (Spans 2 columns) */}
+                        {/* Block 3: Bottom Panel (Spans 8 cols, 4 rows) */}
                         <motion.div
                             layout
-                            className="col-span-2 row-span-1"
+                            className="col-span-8 row-span-4"
                         >
                             <KPIBento />
                         </motion.div>
                     </div>
                 </Suspense>
-            </div>
+            </LayoutShell>
         </LayoutGroup>
     );
 };

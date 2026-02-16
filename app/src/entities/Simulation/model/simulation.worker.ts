@@ -124,9 +124,9 @@ const tick = () => {
 
         // Pick cluster: Balanced selection
         const rand = Math.random();
-        const primary = resident.stats ? Object.keys(resident.stats).reduce((a, b) => resident.stats[a] > resident.stats[b] ? a : b) : 'Science';
+        const primary = resident.stats ? (Object.keys(resident.stats).reduce((a, b) => resident.stats[a as ClusterType] > resident.stats[b as ClusterType] ? a : b) as ClusterType) : 'Science';
         const secondary = resident.stats && Object.keys(resident.stats).length > 1
-            ? Object.keys(resident.stats).sort((a, b) => resident.stats[b] - resident.stats[a])[1]
+            ? (Object.keys(resident.stats).sort((a, b) => resident.stats[b as ClusterType] - resident.stats[a as ClusterType])[1] as ClusterType)
             : primary;
 
         let cluster: ClusterType;

@@ -218,6 +218,16 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                 }
             });
 
+            // Twinkle stars
+            if (fgRef.current) {
+                const scene = fgRef.current.scene();
+                const starField = scene.getObjectByName('starField') as THREE.Points;
+                if (starField) {
+                    const mat = starField.material as THREE.PointsMaterial;
+                    mat.opacity = 0.7 + Math.sin(time * 2) * 0.15;
+                }
+            }
+
             animationFrameId.current = requestAnimationFrame(animate);
         };
 
@@ -422,7 +432,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
     }, [onNodeClick, activeZone, setActiveZone]);
 
     return (
-        <div className="w-full h-full relative bg-[radial-gradient(ellipse_at_center,_#1B1B1B_0%,_#050505_100%)] overflow-hidden">
+        <div className="w-full h-full relative bg-black overflow-hidden">
             <ForceGraph3D
                 ref={fgRef}
                 graphData={graphData}
@@ -480,10 +490,11 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                 }}
                 linkColor={(link: any) => {
                     if (link.type === 'neural') {
-                        const opacity = Math.max(0.1, 0.4 - (link.distance / 1500));
-                        return `rgba(100, 180, 255, ${opacity})`;
+                        const opacity = Math.max(0.15, 0.5 - (link.distance / 1200));
+                        return `rgba(120, 200, 255, ${opacity})`;
                     }
-                    return 'rgba(255,255,255,0.4)';
+                    if (link.type === 'star') return 'rgba(255,255,255,0.35)';
+                    return 'rgba(255,255,255,0.2)';
                 }}
                 linkWidth={(link: any) => link.type === 'neural' ? 1.5 : 2.5}
                 linkOpacity={0.6}

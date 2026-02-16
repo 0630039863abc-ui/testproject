@@ -21,18 +21,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ currentView, onChangeView 
             </div>
 
             {/* Center: Tabs */}
-            <nav className="flex items-center gap-1 bg-white/[0.03] px-1.5 py-1 rounded-lg border border-white/[0.06]">
+            <nav className="flex items-center gap-1 bg-white/[0.03] px-1.5 py-1.5 rounded-xl border border-white/[0.06]">
                 <TabButton
                     active={currentView === 'admin'}
                     onClick={() => onChangeView('admin')}
-                    icon={<Activity size={13} className={currentView === 'admin' ? "text-zinc-100" : "text-zinc-500"} />}
+                    icon={<Activity size={15} className={currentView === 'admin' ? "text-zinc-100" : "text-zinc-500"} />}
                     label="Управление"
                     layoutId="app-header-tab-bg"
                 />
                 <TabButton
                     active={currentView === 'user'}
                     onClick={() => onChangeView('user')}
-                    icon={<User size={13} className={currentView === 'user' ? "text-zinc-100" : "text-zinc-500"} />}
+                    icon={<User size={15} className={currentView === 'user' ? "text-zinc-100" : "text-zinc-500"} />}
                     label="Оператор"
                     layoutId="app-header-tab-bg"
                 />

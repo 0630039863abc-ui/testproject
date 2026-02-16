@@ -42,6 +42,8 @@ export const KPIBento: React.FC = () => {
         })).sort((a, b) => b.score - a.score);
     }, [logs.length]);
 
+    const maxScore = Math.max(...ranking.map(r => r.score), 1);
+
     return (
         <Widget
             title="Рейтинг"
@@ -49,32 +51,43 @@ export const KPIBento: React.FC = () => {
             className="h-full"
             contentClassName="overflow-y-auto"
         >
-            <div className="flex flex-col gap-1">
-                {ranking.map((item, idx) => (
-                    <div
-                        key={item.name}
-                        className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.03] transition-colors duration-150 group"
-                    >
-                        <span className="text-[11px] text-zinc-500 font-mono tabular-nums w-5 text-right shrink-0">
-                            {idx + 1}
-                        </span>
+            <div className="flex flex-col justify-evenly h-full">
+                {ranking.map((item, idx) => {
+                    const barWidth = Math.max((item.score / maxScore) * 100, 3);
+                    return (
                         <div
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ backgroundColor: item.color }}
-                        />
-                        <div className="flex-1 min-w-0">
-                            <span className="text-[13px] text-zinc-200 truncate block">
-                                {CLUSTER_TRANSLATIONS[item.name] || item.name}
+                            key={item.name}
+                            className="relative flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.03] transition-colors duration-150 group overflow-hidden"
+                        >
+                            <div
+                                className="absolute inset-y-0 left-0 rounded-lg transition-all duration-500"
+                                style={{
+                                    width: `${barWidth}%`,
+                                    backgroundColor: item.color,
+                                    opacity: 0.1,
+                                }}
+                            />
+                            <span className="relative text-[11px] text-zinc-500 font-mono tabular-nums w-5 text-right shrink-0">
+                                {idx + 1}
+                            </span>
+                            <div
+                                className="relative w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: item.color }}
+                            />
+                            <div className="relative flex-1 min-w-0">
+                                <span className="text-[13px] text-zinc-200 truncate block">
+                                    {CLUSTER_TRANSLATIONS[item.name] || item.name}
+                                </span>
+                            </div>
+                            <div className="relative shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                                <Sparkline data={item.trend} color={item.color} />
+                            </div>
+                            <span className="relative text-[15px] font-mono text-zinc-100 tabular-nums font-semibold w-12 text-right shrink-0">
+                                {item.score}
                             </span>
                         </div>
-                        <div className="shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <Sparkline data={item.trend} color={item.color} />
-                        </div>
-                        <span className="text-[14px] font-mono text-zinc-100 tabular-nums font-medium w-12 text-right shrink-0">
-                            {item.score}
-                        </span>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </Widget>
     );

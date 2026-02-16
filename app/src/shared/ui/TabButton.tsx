@@ -20,20 +20,18 @@ export const TabButton: React.FC<TabButtonProps> = ({
     <button
         onClick={onClick}
         className={clsx(
-            "group relative flex items-center gap-2 px-5 py-2 rounded-full transition-all duration-300 text-[11px] font-mono font-bold tracking-[0.1em] uppercase",
-            active ? "text-white" : "text-white/40 hover:text-white"
+            "relative flex items-center gap-2 px-3.5 py-1.5 rounded-md transition-colors duration-150 text-[12px] font-medium",
+            active ? "text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
         )}
     >
         {active && (
             <motion.div
                 layoutId={layoutId}
-                className="absolute inset-0 bg-white/10 rounded-full border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                className="absolute inset-0 bg-white/[0.08] rounded-md"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
             />
         )}
-        <span className="relative z-10 group-hover:-translate-y-0.5 transition-transform duration-300">
-            {icon}
-        </span>
+        <span className="relative z-10">{icon}</span>
         <span className="relative z-10">{label}</span>
     </button>
 );

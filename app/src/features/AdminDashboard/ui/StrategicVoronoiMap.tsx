@@ -149,7 +149,7 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
             meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, targetZ, 0.15);
             const material = meshRef.current.material as THREE.MeshStandardMaterial;
             if (!active) {
-                const breathing = Math.sin(state.clock.elapsedTime * 1.5 + label.length) * 0.05 + 0.6;
+                const breathing = Math.sin(state.clock.elapsedTime * 1.5 + label.length) * 0.05 + 0.35;
                 material.opacity = breathing;
                 material.emissiveIntensity = breathing * 0.8;
             } else {

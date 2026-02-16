@@ -99,33 +99,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
     const lastLogCount = useRef(0);
     const animationFrameId = useRef<number>(0);
 
-    // CACHE Geometries and Materials to prevent memory thrashing
-    const geometries = useRef<Map<string, THREE.SphereGeometry>>(new Map());
-    const materials = useRef<Map<string, THREE.MeshPhysicalMaterial>>(new Map());
-
-    const getGeometry = (size: number) => {
-        const key = `sphere_${size.toFixed(2)}`;
-        if (!geometries.current.has(key)) {
-            geometries.current.set(key, new THREE.SphereGeometry(size, 32, 32));
-        }
-        return geometries.current.get(key)!;
-    };
-
-    const getMaterial = (color: string, isInactive: boolean, isCluster: boolean) => {
-        const key = `${color}_${isInactive}_${isCluster}`;
-        if (!materials.current.has(key)) {
-            materials.current.set(key, new THREE.MeshPhysicalMaterial({
-                color: isInactive ? '#6b7280' : color,
-                metalness: 0.1,
-                roughness: 0.1,
-                emissive: isInactive ? '#6b7280' : color,
-                emissiveIntensity: isInactive ? 0.3 : (isCluster ? 2.0 : 0.5),
-                transparent: true,
-                opacity: isInactive ? 0.5 : 0.9
-            }));
-        }
-        return materials.current.get(key)!;
-    };
+    const clusterGroups = useRef<Map<string, THREE.Group>>(new Map());
 
     // Detect new logs and register pulse timestamps
     useEffect(() => {
@@ -141,33 +115,55 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
         lastLogCount.current = logs.length;
     }, [logs, currentUser.name]);
 
-    // Animation loop: update material intensity based on pulse age
+    // Animation loop: ring rotation, sinusoidal pulse, and halo breathing
     useEffect(() => {
         const PULSE_DURATION = 800;
-        const BASE_INTENSITY = 2.0;
-        const PULSE_INTENSITY = 6.0;
+        const BASE_INTENSITY = 3.0;
+        const PULSE_INTENSITY = 8.0;
 
         const animate = () => {
             const now = Date.now();
+            const time = now * 0.001; // seconds
 
-            clusterMeshes.current.forEach((mesh, clusterId) => {
-                const pulseTime = clusterPulseTimestamps.current.get(clusterId);
-                if (pulseTime) {
-                    const age = now - pulseTime;
-                    if (age < PULSE_DURATION) {
-                        const progress = age / PULSE_DURATION;
-                        const intensity = PULSE_INTENSITY - (progress * (PULSE_INTENSITY - BASE_INTENSITY));
-                        const scale = 1 + (1 - progress) * 0.3;
+            clusterGroups.current.forEach((group, clusterId) => {
+                // Rotate rings
+                const ring = group.getObjectByName('ring') as THREE.Mesh;
+                if (ring) {
+                    ring.rotation.z += 0.002;
+                }
 
-                        const material = mesh.material as THREE.MeshPhysicalMaterial;
-                        if (material) material.emissiveIntensity = intensity;
-                        mesh.scale.setScalar(scale);
+                // Core animation
+                const core = clusterMeshes.current.get(clusterId);
+                if (core) {
+                    const pulseTime = clusterPulseTimestamps.current.get(clusterId);
+                    if (pulseTime) {
+                        const age = now - pulseTime;
+                        if (age < PULSE_DURATION) {
+                            const progress = age / PULSE_DURATION;
+                            const intensity = PULSE_INTENSITY - (progress * (PULSE_INTENSITY - BASE_INTENSITY));
+                            const scale = 1 + (1 - progress) * 0.3;
+                            const material = core.material as THREE.MeshStandardMaterial;
+                            if (material) material.emissiveIntensity = intensity;
+                            core.scale.setScalar(scale);
+                        } else {
+                            clusterPulseTimestamps.current.delete(clusterId);
+                        }
                     } else {
-                        clusterPulseTimestamps.current.delete(clusterId);
-                        const material = mesh.material as THREE.MeshPhysicalMaterial;
-                        if (material) material.emissiveIntensity = BASE_INTENSITY;
-                        mesh.scale.setScalar(1);
+                        // Ambient sinusoidal glow
+                        const hash = clusterId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+                        const material = core.material as THREE.MeshStandardMaterial;
+                        if (material) {
+                            material.emissiveIntensity = BASE_INTENSITY + Math.sin(time * 0.8 + hash) * 0.5;
+                        }
                     }
+                }
+
+                // Subtle halo pulse
+                const halo = group.getObjectByName('halo') as THREE.Mesh;
+                if (halo) {
+                    const hash = clusterId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+                    const mat = halo.material as THREE.MeshBasicMaterial;
+                    mat.opacity = 0.08 + Math.sin(time * 0.5 + hash) * 0.03;
                 }
             });
 
@@ -368,37 +364,115 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                 backgroundColor="#000000"
                 nodeThreeObject={(node: any) => {
                     const group = new THREE.Group();
-                    const baseSize = node.val ? node.val * 0.2 : 2;
-                    const geometry = getGeometry(baseSize);
-                    const material = getMaterial(node.color, !!node.inactive, node.group === 'cluster');
-                    const sphere = new THREE.Mesh(geometry, material);
 
-                    if (node.group === 'cluster' && !node.inactive) {
-                        clusterMeshes.current.set(node.id, sphere);
-                    }
-
-                    if (node.inactive) {
-                        const wireframeGeometry = getGeometry(node.val * 0.22);
-                        const wireframeMaterial = new THREE.MeshBasicMaterial({
-                            color: '#ffffff',
-                            wireframe: true,
+                    if (node.group === 'cluster') {
+                        // === CORE SPHERE (planet) ===
+                        const coreSize = 12;
+                        const coreGeometry = new THREE.SphereGeometry(coreSize, 48, 48);
+                        const coreMaterial = new THREE.MeshStandardMaterial({
+                            color: node.color,
+                            emissive: node.color,
+                            emissiveIntensity: 3.0,
+                            metalness: 0.3,
+                            roughness: 0.2,
                             transparent: true,
-                            opacity: 0.1
+                            opacity: 0.95,
                         });
-                        const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
-                        group.add(wireframe);
+                        const core = new THREE.Mesh(coreGeometry, coreMaterial);
+                        group.add(core);
+
+                        // Store for animation
+                        clusterMeshes.current.set(node.id, core);
+                        clusterGroups.current.set(node.id, group);
+
+                        // === HALO (atmospheric glow) ===
+                        const haloGeometry = new THREE.SphereGeometry(coreSize * 2.2, 32, 32);
+                        const haloMaterial = new THREE.MeshBasicMaterial({
+                            color: node.color,
+                            transparent: true,
+                            opacity: 0.08,
+                            side: THREE.BackSide,
+                            blending: THREE.AdditiveBlending,
+                            depthWrite: false,
+                        });
+                        const halo = new THREE.Mesh(haloGeometry, haloMaterial);
+                        halo.name = 'halo';
+                        group.add(halo);
+
+                        // === RING (Saturn-like) ===
+                        const ringGeometry = new THREE.RingGeometry(coreSize * 1.6, coreSize * 2.4, 64);
+                        const ringMaterial = new THREE.MeshBasicMaterial({
+                            color: node.color,
+                            transparent: true,
+                            opacity: 0.15,
+                            side: THREE.DoubleSide,
+                            blending: THREE.AdditiveBlending,
+                            depthWrite: false,
+                        });
+                        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                        ring.rotation.x = Math.PI * 0.4;
+                        ring.name = 'ring';
+                        group.add(ring);
+
+                        // === LABEL ===
+                        const labelText = CLUSTER_TRANSLATIONS[node.id] || node.id;
+                        const sprite = new SpriteText(labelText);
+                        sprite.color = '#ffffff';
+                        sprite.textHeight = 10;
+                        sprite.position.y = coreSize * 2.5 + 5;
+                        sprite.fontFace = 'JetBrains Mono';
+                        sprite.fontWeight = 'bold';
+                        group.add(sprite);
+
+                    } else if (node.group === 'topic') {
+                        // === SATELLITE SPHERE ===
+                        const satSize = 4;
+                        const satGeometry = new THREE.SphereGeometry(satSize, 24, 24);
+                        const satMaterial = new THREE.MeshStandardMaterial({
+                            color: node.color,
+                            emissive: node.color,
+                            emissiveIntensity: 1.5,
+                            metalness: 0.2,
+                            roughness: 0.3,
+                            transparent: true,
+                            opacity: 0.85,
+                        });
+                        const sat = new THREE.Mesh(satGeometry, satMaterial);
+                        group.add(sat);
+
+                        // === SMALL HALO ===
+                        const miniHalo = new THREE.Mesh(
+                            new THREE.SphereGeometry(satSize * 1.8, 16, 16),
+                            new THREE.MeshBasicMaterial({
+                                color: node.color,
+                                transparent: true,
+                                opacity: 0.06,
+                                side: THREE.BackSide,
+                                blending: THREE.AdditiveBlending,
+                                depthWrite: false,
+                            })
+                        );
+                        group.add(miniHalo);
+
+                        // === LABEL ===
+                        const sprite = new SpriteText(node.id);
+                        sprite.color = '#cccccc';
+                        sprite.textHeight = 4;
+                        sprite.position.y = satSize + 5;
+                        sprite.fontFace = 'JetBrains Mono';
+                        group.add(sprite);
+
+                    } else if (node.group === 'event') {
+                        // === TINY DOT ===
+                        const dotGeometry = new THREE.SphereGeometry(1.5, 12, 12);
+                        const dotMaterial = new THREE.MeshBasicMaterial({
+                            color: '#ffffff',
+                            transparent: true,
+                            opacity: 0.7,
+                            blending: THREE.AdditiveBlending,
+                        });
+                        group.add(new THREE.Mesh(dotGeometry, dotMaterial));
                     }
-
-                    group.add(sphere);
-
-                    const labelText = CLUSTER_TRANSLATIONS[node.id] || node.id.replace(/_/g, ' ');
-                    const sprite = new SpriteText(labelText);
-                    sprite.color = '#fff';
-                    sprite.textHeight = node.group === 'cluster' ? 8 : (node.group === 'topic' ? 4 : 2);
-                    sprite.position.y = node.val * 0.2 + (node.group === 'cluster' ? 8 : 4);
-                    sprite.fontFace = 'JetBrains Mono';
-
-                    if (node.group !== 'event') group.add(sprite);
 
                     return group;
                 }}

@@ -7,6 +7,83 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { getClusterColor, CLUSTER_TRANSLATIONS } from '../../../shared/lib/tokens';
 import { Activity } from 'lucide-react';
 
+function createStarField(): THREE.Points {
+    const starCount = 4000;
+    const positions = new Float32Array(starCount * 3);
+    const sizes = new Float32Array(starCount);
+    const radius = 2000;
+
+    for (let i = 0; i < starCount; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = radius + (Math.random() - 0.5) * 400;
+        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        positions[i * 3 + 2] = r * Math.cos(phi);
+        sizes[i] = Math.random() * 2 + 0.5;
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    const material = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 1.5,
+        transparent: true,
+        opacity: 0.8,
+        sizeAttenuation: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+    });
+
+    const points = new THREE.Points(geometry, material);
+    points.name = 'starField';
+    return points;
+}
+
+function createNebulaTexture(color: string): THREE.Texture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+    const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    gradient.addColorStop(0, color + '40');
+    gradient.addColorStop(0.4, color + '20');
+    gradient.addColorStop(1, color + '00');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 256, 256);
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+}
+
+function createNebulae(clusterNodes: { fx: number; fy: number; fz: number; color: string }[]): THREE.Group {
+    const nebulaGroup = new THREE.Group();
+    nebulaGroup.name = 'nebulae';
+
+    const picks = clusterNodes.filter((_, i) => i % 3 === 0).slice(0, 5);
+    picks.forEach((node) => {
+        const texture = createNebulaTexture(node.color);
+        const material = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            opacity: 0.12,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+        const sprite = new THREE.Sprite(material);
+        sprite.position.set(
+            node.fx + (Math.random() - 0.5) * 100,
+            node.fy + (Math.random() - 0.5) * 100,
+            node.fz - 50
+        );
+        sprite.scale.set(350, 350, 1);
+        nebulaGroup.add(sprite);
+    });
+
+    return nebulaGroup;
+}
+
 interface ComponentProps {
     onNodeClick: (node: any) => void;
 }
@@ -228,14 +305,35 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
         if (fgRef.current) {
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.4,
-                0.2,
-                0.9
+                0.8,   // strength (was 0.4)
+                0.4,   // radius (was 0.2)
+                0.6    // threshold (was 0.9)
             );
             fgRef.current.postProcessingComposer().addPass(bloomPass);
-            fgRef.current.cameraPosition({ x: 0, y: 0, z: 800 });
+            fgRef.current.cameraPosition({ x: 200, y: 150, z: 900 });
+
+            const scene = fgRef.current.scene();
+            const existing = scene.getObjectByName('starField');
+            if (existing) scene.remove(existing);
+            scene.add(createStarField());
         }
     }, []);
+
+    useEffect(() => {
+        if (!fgRef.current) return;
+        const scene = fgRef.current.scene();
+
+        const existing = scene.getObjectByName('nebulae');
+        if (existing) scene.remove(existing);
+
+        const clusterNodes = graphData.nodes
+            .filter((n: any) => n.group === 'cluster')
+            .map((n: any) => ({ fx: n.fx, fy: n.fy, fz: n.fz, color: n.color }));
+
+        if (clusterNodes.length > 0) {
+            scene.add(createNebulae(clusterNodes));
+        }
+    }, [graphData]);
 
     const handleNodeClick = useCallback((node: any) => {
         if (!node) return;
@@ -267,7 +365,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                 }}
                 linkWidth={(link: any) => link.type === 'neural' ? 1.5 : 2.5}
                 linkOpacity={0.6}
-                backgroundColor="#050505"
+                backgroundColor="#000000"
                 nodeThreeObject={(node: any) => {
                     const group = new THREE.Group();
                     const baseSize = node.val ? node.val * 0.2 : 2;

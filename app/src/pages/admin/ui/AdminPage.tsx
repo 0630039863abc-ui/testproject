@@ -5,7 +5,7 @@ import { Loading } from '../../../shared/ui/Loading';
 import { LayoutShell } from '../../../widgets/LayoutShell';
 
 const StrategicVoronoiMap = React.lazy(() => import('../../../features/AdminDashboard/ui/StrategicVoronoiMap').then(module => ({ default: module.StrategicVoronoiMap })));
-const KPIBento = React.lazy(() => import('../../../features/AdminDashboard/ui/KPIBento').then(module => ({ default: module.KPIBento })));
+
 const LiveOccupancy = React.lazy(() => import('../../../features/AdminDashboard/ui/LiveOccupancy').then(module => ({ default: module.LiveOccupancy })));
 const TelemetryTableModule = React.lazy(() => import('../../../features/Telemetry/ui/TelemetryStream').then(module => ({ default: module.TelemetryTableModule })));
 const DemographicMatrix = React.lazy(() => import('../../../features/AdminDashboard/ui/DemographicMatrix').then(module => ({ default: module.DemographicMatrix })));
@@ -44,13 +44,8 @@ export const StrategicCommand: React.FC<StrategicCommandProps> = ({ currentView,
                         />
                     </div>
 
-                    {/* Rating (col 1-4, row 4) */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-4 h-[280px] lg:h-auto">
-                        <KPIBento />
-                    </div>
-
-                    {/* Demographic Matrix (col 5-12, row 4) */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-8 h-[250px] lg:h-auto">
+                    {/* Demographic Matrix (col 1-12, row 4) */}
+                    <div className="col-span-1 md:col-span-2 lg:col-span-12 h-[250px] lg:h-auto">
                         <DemographicMatrix />
                     </div>
                 </div>

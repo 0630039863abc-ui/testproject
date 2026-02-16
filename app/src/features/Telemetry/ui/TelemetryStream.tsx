@@ -275,12 +275,13 @@ export const TelemetryTableModule: React.FC<{ recentLogs: any[], selectedRowId: 
             </div>
 
             {/* Column Headers */}
-            <div className="grid grid-cols-[70px_90px_100px_1fr_1fr] gap-2 px-4 h-8 items-center border-b border-white/[0.05] text-[11px] font-medium uppercase tracking-wider text-zinc-500 shrink-0">
+            <div className="grid grid-cols-[70px_90px_1fr] lg:grid-cols-[70px_90px_100px_1fr_1fr] gap-2 px-4 h-8 items-center border-b border-white/[0.05] text-[11px] font-medium uppercase tracking-wider text-zinc-500 shrink-0">
                 <div>Время</div>
                 <div>Субъект</div>
-                <div>Кластер</div>
-                <div>Действие</div>
-                <div>Контекст</div>
+                <div className="hidden lg:block">Кластер</div>
+                <div className="lg:hidden">Кластер / Действие</div>
+                <div className="hidden lg:block">Действие</div>
+                <div className="hidden lg:block">Контекст</div>
             </div>
 
             {/* Rows */}
@@ -293,7 +294,7 @@ export const TelemetryTableModule: React.FC<{ recentLogs: any[], selectedRowId: 
                             key={log.id}
                             onClick={() => onSelect(log.id)}
                             className={clsx(
-                                "grid grid-cols-[70px_90px_100px_1fr_1fr] gap-2 px-4 py-2 border-b border-white/[0.03] items-center cursor-pointer transition-colors duration-150 relative",
+                                "grid grid-cols-[70px_90px_1fr] lg:grid-cols-[70px_90px_100px_1fr_1fr] gap-2 px-4 py-2 border-b border-white/[0.03] items-center cursor-pointer transition-colors duration-150 relative",
                                 isSelected ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
                             )}
                         >
@@ -314,11 +315,14 @@ export const TelemetryTableModule: React.FC<{ recentLogs: any[], selectedRowId: 
                                 >
                                     {CLUSTER_TRANSLATIONS[log.cluster]?.slice(0, 8) || log.cluster}
                                 </span>
+                                <div className="lg:hidden text-[10px] text-zinc-400 mt-0.5 truncate">
+                                    {log.action}
+                                </div>
                             </div>
-                            <div className="text-[12px] text-zinc-300 truncate">
+                            <div className="text-[12px] text-zinc-300 truncate hidden lg:block">
                                 {log.action}
                             </div>
-                            <div className="text-[11px] text-zinc-500 truncate">
+                            <div className="text-[11px] text-zinc-500 truncate hidden lg:block">
                                 {log.zone}
                             </div>
                             {isSelected && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500" />}

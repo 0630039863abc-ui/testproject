@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { ClusterPulseCards } from '../../../widgets/ClusterPulseCards';
 import { AgentTelemetryStream } from '../../../widgets/AgentTelemetryStream';
 import { EventCard } from '../../../entities/Event/ui/EventCard';
@@ -7,15 +7,20 @@ import { getDominantCluster } from '../../../entities/User/lib/archetype';
 import { CharacterSelector } from '../../../features/User/CharacterSelector/ui/CharacterSelector';
 import { useSimulation } from '../../../entities/Simulation/model/simulationContext';
 import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
-import { Star, Grid } from 'lucide-react';
-import { CognitiveDrift } from '../../../entities/User/ui/CognitiveDrift';
+import { Star, Grid, Radio } from 'lucide-react';
 import { CLUSTER_TRANSLATIONS, getClusterColor } from '../../../shared/lib/tokens';
 import { Loading } from '../../../shared/ui/Loading';
 import { LayoutShell } from '../../../widgets/LayoutShell';
-import { useMemo } from 'react';
 
 const PersonalKnowledgeGraph = React.lazy(() => import('../../../features/KnowledgeGraph/ui/PersonalKnowledgeGraph').then(module => ({ default: module.PersonalKnowledgeGraph })));
 const SpiderChart = React.lazy(() => import('../../../entities/User/ui/SpiderChart').then(module => ({ default: module.SpiderChart })));
+
+type PanelTab = 'topology' | 'stream';
+
+const TAB_CONFIG: { id: PanelTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'topology', label: 'Топология', icon: <Grid size={11} /> },
+    { id: 'stream', label: 'Поток', icon: <Radio size={11} /> },
+];
 
 interface UserDashboardProps {
     currentView: 'physical' | 'user' | 'admin';
@@ -26,6 +31,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
     const { currentUser } = useSimulation();
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [showAchievement, setShowAchievement] = useState(false);
+    const [activeTab, setActiveTab] = useState<PanelTab>('topology');
 
     // Dynamic Theme Color based on Dominant Cluster
     const dominantCluster = getDominantCluster(currentUser.stats as any);
@@ -38,7 +44,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
         const topCluster = sorted[0]?.[0] || 'Education';
         const translation = CLUSTER_TRANSLATIONS[topCluster] || topCluster;
 
-        // Dative case mapping for "посвященных..."
         const getDativeCluster = (c: string) => {
             const map: Record<string, string> = {
                 'Education': 'образовательному сектору',
@@ -67,7 +72,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
         return patterns[seed % patterns.length];
     }, [currentUser.stats, currentUser.eventsAttended, currentUser.id]);
 
-    // L5 Trigger Logic (Science & Tech based)
+    // L5 Trigger Logic
     useEffect(() => {
         const knowledgeScore = (currentUser.stats['Education'] || 0) + (currentUser.stats['HealthyLifestyle'] || 0);
         if (knowledgeScore > 800 && !currentUser.skillsUnlocked.includes('Quantum Biophysics')) {
@@ -99,109 +104,147 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
                     onChangeView={onChangeView}
                 />
 
-                <div className="flex-1 flex overflow-hidden relative z-10">
-                    {/* LEFT PANE: Obsidian Map (60%) */}
-                    <div className="w-[60%] h-full relative border-r border-white/5 bg-black/20 overflow-hidden">
+                {/* Main Content: Graph fills viewport, panel floats */}
+                <div className="flex-1 relative overflow-hidden z-10" style={{ isolation: 'isolate' }}>
+                    {/* BACKGROUND: Knowledge Graph (full viewport) */}
+                    <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
                         <Suspense fallback={<Loading />}>
                             <PersonalKnowledgeGraph onNodeClick={handleNodeClick} />
                         </Suspense>
 
-                        {/* Event Card Overlay Layer */}
+                        {/* Event Card Overlay */}
                         <AnimatePresence>
                             {selectedEvent && (
                                 <EventCard event={selectedEvent} onClose={() => setSelectedEvent(null)} />
                             )}
                         </AnimatePresence>
-
-                        {/* Map HUD Decoration */}
-                        <div className="absolute top-6 left-6 pointer-events-none">
-                            <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6] animate-pulse" />
-                                <h3 className="text-[10px] font-orbitron font-black text-white uppercase tracking-[0.4em]">
-                                    ПЕРСОНАЛЬНЫЙ_НЕКСУС_V2
-                                </h3>
-                            </div>
-                            <span className="text-[7px] text-blue-400/40 mt-1.5 font-mono uppercase tracking-[0.2em]">Фокус карты: Когнитивная Связность</span>
-                        </div>
                     </div>
 
-                    {/* RIGHT PANE: Telemetry Dashboard (Glass HUD) */}
-                    <div className="w-[40%] h-full relative overflow-hidden bg-black/40 flex flex-col border-l border-white/5">
-                        {/* 1. PROFILE SECTION */}
-                        <div className="flex-none pt-8 px-8 pb-4 border-b border-white/5 relative bg-white/[0.01]">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex flex-col gap-1.5">
-                                    <h2 className="text-2xl font-black text-white uppercase tracking-wider leading-none filter drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] font-orbitron">
+                    {/* Map HUD Label (outside graph container to avoid canvas stacking issues) */}
+                    <div className="absolute top-4 left-4 lg:top-6 lg:left-6 z-10 pointer-events-none">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full shadow-[0_0_10px_#3b82f6] animate-pulse" style={{ backgroundColor: themeColor }} />
+                            <h3 className="text-[10px] font-orbitron font-black text-white uppercase tracking-[0.4em]">
+                                ПЕРСОНАЛЬНЫЙ_НЕКСУС_V2
+                            </h3>
+                        </div>
+                        <span className="text-[7px] text-blue-400/40 mt-1.5 font-mono uppercase tracking-[0.2em]">Фокус карты: Когнитивная Связность</span>
+                    </div>
+
+                    {/* FLOATING PANEL (right side) — inline style for reliable positioning */}
+                    <div
+                        className="absolute z-30 flex flex-col rounded-2xl overflow-hidden border border-white/[0.08] right-2 top-2 bottom-2 w-[280px] md:right-3 md:top-3 md:bottom-3 md:w-[320px] lg:right-5 lg:top-5 lg:bottom-5 lg:w-[400px]"
+                        style={{
+                            backgroundColor: 'rgba(0,0,0,0.65)',
+                            backdropFilter: 'blur(40px)',
+                            WebkitBackdropFilter: 'blur(40px)',
+                            boxShadow: '0 8px 60px rgba(0,0,0,0.6)',
+                        }}
+                    >
+                        {/* Subtle top accent line */}
+                        <div
+                            className="h-[2px] w-full opacity-60"
+                            style={{ background: `linear-gradient(90deg, transparent, ${themeColor}, transparent)` }}
+                        />
+
+                        {/* 1. PROFILE HEADER (compact) */}
+                        <div className="flex-none px-4 lg:px-6 pt-4 lg:pt-5 pb-3 lg:pb-4">
+                            <div className="flex items-start justify-between mb-1">
+                                <div>
+                                    <h2 className="text-base lg:text-xl font-black text-white uppercase tracking-wider leading-none font-orbitron">
                                         {currentUser.name}
                                     </h2>
-                                    <div className="flex items-center gap-3 text-[9px] font-mono text-blue-300/40 uppercase tracking-widest mt-1">
+                                    <div className="flex items-center gap-3 text-[9px] font-mono text-white/30 uppercase tracking-widest mt-2">
                                         <span>ID: {currentUser.id.slice(0, 8)}</span>
                                         <span className="text-white/10">|</span>
-                                        <span>LEVEL: {Math.floor(currentUser.eventsAttended / 10) + 1}</span>
-                                    </div>
-                                    <div className="mt-3 text-[10px] font-medium text-white/40 italic border-l-2 border-blue-500/30 pl-3 leading-relaxed">
-                                        "{personalityInsight}"
+                                        <span>LVL {Math.floor(currentUser.eventsAttended / 10) + 1}</span>
                                     </div>
                                 </div>
                             </div>
-                            <CharacterSelector themeColor={themeColor} />
-                        </div>
+                            <p className="text-[10px] text-white/35 italic leading-relaxed mt-3 border-l-2 pl-3" style={{ borderColor: `${themeColor}40` }}>
+                                "{personalityInsight}"
+                            </p>
 
-                        {/* 2. COGNITIVE TOPOLOGY */}
-                        <div className="flex-none relative p-8 border-b border-white/5 overflow-hidden">
-                            <div className="absolute top-0 left-0 w-24 h-[1px] bg-gradient-to-r from-blue-500/50 to-transparent" />
-                            <div className="flex items-center justify-between mb-5">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 flex items-center gap-3">
-                                    <Grid size={12} className="text-blue-500" />
-                                    Когнитивная Топология
-                                </h3>
-                                <div className="text-[8px] font-mono text-blue-400/30 uppercase tracking-widest">СИНХРОНИЗАЦИЯ: АКТИВНА</div>
-                            </div>
-
-                            <div className="w-full h-[220px] relative rounded-sm border border-white/5 bg-black/60 overflow-hidden group/chart">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.08),transparent_70%)] opacity-50" />
-                                <Suspense fallback={<Loading />}>
-                                    <SpiderChart themeColor={themeColor} />
-                                </Suspense>
-                                {/* Chart Decor */}
-                                <div className="absolute top-3 right-3 w-3 h-3 border-t border-r border-white/20" />
-                                <div className="absolute bottom-3 left-3 w-3 h-3 border-b border-l border-white/20" />
+                            {/* Character Selector */}
+                            <div className="mt-4">
+                                <CharacterSelector themeColor={themeColor} />
                             </div>
                         </div>
 
-                        {/* 3. SCROLLABLE FEED (Neuro-Stream) */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-                            <section className="p-8">
-                                <div className="mb-6 sticky top-0 bg-transparent z-20 flex justify-between items-center">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 flex items-center gap-3">
-                                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_#ef4444]" />
-                                        НЕЙРО_ПОТОК_LIVE
-                                    </h3>
-                                </div>
-
-                                <ClusterPulseCards />
-                                <div className="mt-8 pt-8 border-t border-white/5 border-dashed relative">
-                                    <div className="absolute top-[-1px] left-0 w-12 h-[1px] bg-red-500/30" />
-                                    <AgentTelemetryStream />
-                                </div>
-                            </section>
-
-                            <section className="p-8 pt-0 opacity-40 hover:opacity-100 transition-opacity duration-700">
-                                <CognitiveDrift />
-                            </section>
+                        {/* 2. TAB BAR */}
+                        <div className="flex-none px-4 lg:px-6 pb-1">
+                            <div className="flex gap-1 p-1 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+                                {TAB_CONFIG.map((tab) => {
+                                    const isActive = activeTab === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`
+                                                flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-300
+                                                ${isActive
+                                                    ? 'text-white shadow-lg'
+                                                    : 'text-white/30 hover:text-white/50'
+                                                }
+                                            `}
+                                            style={isActive ? {
+                                                backgroundColor: `${themeColor}20`,
+                                                boxShadow: `0 0 20px ${themeColor}15`,
+                                                color: themeColor,
+                                            } : undefined}
+                                        >
+                                            {tab.icon}
+                                            {tab.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* Footer HUD */}
-                <div className="absolute bottom-6 left-6 z-[60] flex items-center gap-6 pointer-events-none">
-                    <div className="flex items-center gap-2 px-3 py-1 bg-black/40 border border-white/5 rounded-sm backdrop-blur-md">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[8px] font-orbitron font-black text-white/40 uppercase tracking-widest">СТАТУС_ОПЕРАТОРА: НОМИНАЛЬНЫЙ</span>
+                        {/* 3. TAB CONTENT */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar">
+                            <AnimatePresence mode="wait">
+                                {activeTab === 'topology' && (
+                                    <motion.div
+                                        key="topology"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        transition={{ duration: 0.25 }}
+                                        className="p-4 lg:p-6"
+                                    >
+                                        <div className="w-full h-[220px] lg:h-[280px] relative rounded-xl border border-white/[0.06] bg-black/40 overflow-hidden">
+                                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.06),transparent_70%)]" />
+                                            <Suspense fallback={<Loading />}>
+                                                <SpiderChart themeColor={themeColor} />
+                                            </Suspense>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {activeTab === 'stream' && (
+                                    <motion.div
+                                        key="stream"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        transition={{ duration: 0.25 }}
+                                        className="p-4 lg:p-6 space-y-4 lg:space-y-6"
+                                    >
+                                        <ClusterPulseCards />
+                                        <div className="border-t border-white/[0.05] pt-6">
+                                            <AgentTelemetryStream />
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </div>
             </LayoutShell>
 
+            {/* Achievement Modal (unchanged) */}
             <AnimatePresence>
                 {showAchievement && (
                     <motion.div
@@ -217,9 +260,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
                             className="bg-void border border-yellow-500/30 p-10 rounded-sm max-w-md w-full relative overflow-hidden shadow-[0_0_100px_rgba(234,179,8,0.2)] text-glow-orange"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Decorative Frame */}
                             <div className="absolute top-0 left-0 w-full h-full border border-yellow-500/10 m-1" />
-
                             <div className="flex flex-col items-center text-center relative z-10">
                                 <div className="w-24 h-24 bg-yellow-500/5 rounded-full flex items-center justify-center mb-8 border border-yellow-500/20 animate-pulse">
                                     <Star size={44} className="text-yellow-400 fill-yellow-400" />
@@ -239,6 +280,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentView, onCha
                     </motion.div>
                 )}
             </AnimatePresence>
-        </LayoutGroup >
+        </LayoutGroup>
     );
 };

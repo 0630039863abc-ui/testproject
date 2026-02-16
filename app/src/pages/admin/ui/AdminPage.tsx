@@ -24,22 +24,19 @@ export const StrategicCommand: React.FC<StrategicCommandProps> = ({ currentView,
             <AppHeader currentView={currentView} onChangeView={onChangeView} />
 
             <Suspense fallback={<Loading />}>
-                <div
-                    className="flex-1 w-full p-4 grid grid-cols-12 gap-4 relative z-10 overflow-hidden"
-                    style={{ gridTemplateRows: '2fr 1fr 1fr 1.5fr' }}
-                >
+                <div className="flex-1 w-full p-2 lg:p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2 lg:gap-4 relative z-10 overflow-y-auto lg:overflow-hidden lg:[grid-template-rows:3fr_1.5fr_1.5fr_1fr]">
                     {/* Voronoi Map — Hero (col 1-8, row 1-3) */}
-                    <div className="col-span-8 row-span-3">
+                    <div className="col-span-1 md:col-span-2 lg:col-span-8 lg:row-span-3 h-[50vh] md:h-[55vh] lg:h-auto">
                         <StrategicVoronoiMap />
                     </div>
 
                     {/* Activity Matrix (col 9-12, row 1-2) */}
-                    <div className="col-span-4 row-span-2">
+                    <div className="col-span-1 md:col-span-1 lg:col-span-4 lg:row-span-2 h-[280px] lg:h-auto">
                         <LiveOccupancy />
                     </div>
 
                     {/* Telemetry Stream (col 9-12, row 3) */}
-                    <div className="col-span-4 row-span-1 flex flex-col rounded-xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+                    <div className="col-span-1 md:col-span-1 lg:col-span-4 lg:row-span-1 h-[280px] lg:h-auto flex flex-col rounded-xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
                         <TelemetryTableModule
                             recentLogs={logs.slice(0, 15)}
                             selectedRowId={selectedRowId}
@@ -48,12 +45,12 @@ export const StrategicCommand: React.FC<StrategicCommandProps> = ({ currentView,
                     </div>
 
                     {/* Rating (col 1-4, row 4) */}
-                    <div className="col-span-4">
+                    <div className="col-span-1 md:col-span-1 lg:col-span-4 h-[280px] lg:h-auto">
                         <KPIBento />
                     </div>
 
                     {/* Demographic Matrix (col 5-12, row 4) */}
-                    <div className="col-span-8">
+                    <div className="col-span-1 md:col-span-1 lg:col-span-8 h-[250px] lg:h-auto">
                         <DemographicMatrix />
                     </div>
                 </div>

@@ -32,7 +32,7 @@ export const KPIBento: React.FC = () => {
             return acc;
         }, {} as Record<string, { score: number, count: number, users: Set<string> }>);
 
-        return Object.entries(CLUSTER_COLORS).map(([name, color]) => ({
+        return Object.entries(CLUSTER_COLORS).slice(0, 6).map(([name, color]) => ({
             name,
             color,
             score: Math.round(stats[name]?.score || 0),
@@ -53,7 +53,7 @@ export const KPIBento: React.FC = () => {
                 {ranking.map((item, idx) => (
                     <div
                         key={item.name}
-                        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors duration-150 group"
+                        className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.03] transition-colors duration-150 group"
                     >
                         <span className="text-[11px] text-zinc-500 font-mono tabular-nums w-5 text-right shrink-0">
                             {idx + 1}

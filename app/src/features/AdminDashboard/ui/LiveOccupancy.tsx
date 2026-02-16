@@ -26,30 +26,29 @@ export const LiveOccupancy: React.FC = () => {
                 </span>
             }
         >
-            <div className="flex items-end justify-between gap-2 h-full pb-2">
+            <div className="flex items-end gap-1.5 h-full">
                 {sortedMetrics.map((c) => {
                     const color = CLUSTER_COLORS[c.name] || '#ffffff';
-                    const percentage = (c.activeUnits / maxUnits) * 100;
+                    const percentage = Math.max((c.activeUnits / maxUnits) * 100, 8);
                     const translatedName = CLUSTER_TRANSLATIONS[c.name] || c.name;
 
                     return (
-                        <div key={c.name} className="flex-1 flex flex-col items-center gap-2 group">
-                            <div className="w-full flex flex-col items-center justify-end h-full min-h-[80px]">
+                        <div key={c.name} className="flex-1 flex flex-col items-center group" style={{ height: '100%' }}>
+                            <div className="flex-1 w-full flex items-end justify-center px-0.5">
                                 <div
-                                    className="w-full rounded-t-md transition-all duration-300 group-hover:opacity-90"
+                                    className="w-full max-w-[32px] rounded-t-md transition-all duration-300 group-hover:opacity-100"
                                     style={{
                                         height: `${percentage}%`,
                                         backgroundColor: color,
-                                        opacity: 0.7,
-                                        minHeight: '4px',
+                                        opacity: 0.75,
                                     }}
                                 />
                             </div>
-                            <div className="flex flex-col items-center gap-0.5">
-                                <span className="text-[11px] font-mono text-zinc-200 tabular-nums font-medium">
+                            <div className="flex flex-col items-center gap-0 pt-1.5 pb-1 shrink-0">
+                                <span className="text-[10px] font-mono text-zinc-300 tabular-nums font-medium leading-none">
                                     {c.activeUnits}
                                 </span>
-                                <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                                <span className="text-[8px] text-zinc-500 uppercase tracking-wider leading-none mt-0.5">
                                     {translatedName.slice(0, 3)}
                                 </span>
                             </div>

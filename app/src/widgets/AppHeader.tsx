@@ -33,7 +33,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ currentView, onChangeView 
                     active={currentView === 'user'}
                     onClick={() => onChangeView('user')}
                     icon={<User size={15} className={currentView === 'user' ? "text-zinc-100" : "text-zinc-500"} />}
-                    label="Оператор"
+                    label="Профиль"
                     layoutId="app-header-tab-bg"
                 />
             </nav>

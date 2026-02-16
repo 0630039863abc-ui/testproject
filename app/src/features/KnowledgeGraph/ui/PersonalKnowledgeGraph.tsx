@@ -235,7 +235,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
         return () => cancelAnimationFrame(animationFrameId.current);
     }, []);
 
-    // CHAOTIC NEURON-LIKE LAYOUT CONSTRUCTION
+    // ELLIPTICAL LAYOUT WITH ENTROPY
     const graphData = useMemo(() => {
         const nodes: any[] = [];
         const links: any[] = [];
@@ -246,20 +246,24 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
             return x - Math.floor(x);
         };
 
-        const spreadX = 500;
-        const spreadY = 700;
-        const spreadZ = 400;
-        const offsetX = -250;
+        const radiusX = 350;
+        const radiusY = 280;
+        const jitter = 60; // random offset from ideal position
+        const zJitter = 40;
 
         allClusters.forEach((clusterName: any, index: number) => {
             const isActiveNode = activeZone === clusterName;
             const seed = index * 123.456;
 
-            const baseX = (seededRandom(seed + 1) - 0.5) * spreadX;
-            const x = baseX + offsetX;
-            const y = (seededRandom(seed + 2) - 0.5) * spreadY;
-            const depthGradient = (baseX / spreadX) * 50;
-            const z = ((seededRandom(seed + 3) - 0.5) * spreadZ) + depthGradient;
+            // Base elliptical position
+            const angle = (index / allClusters.length) * Math.PI * 2 - Math.PI / 2;
+            const baseX = Math.cos(angle) * radiusX;
+            const baseY = Math.sin(angle) * radiusY;
+
+            // Add seeded jitter for entropy
+            const x = baseX + (seededRandom(seed + 1) - 0.5) * jitter;
+            const y = baseY + (seededRandom(seed + 2) - 0.5) * jitter;
+            const z = (seededRandom(seed + 3) - 0.5) * zJitter;
 
             nodes.push({
                 id: clusterName,
@@ -280,7 +284,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                     const dz = node1.fz - node2.fz;
                     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-                    if (distance < 450) {
+                    if (distance < 400) {
                         links.push({
                             source: node1.id,
                             target: node2.id,
@@ -607,11 +611,13 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                         // === LABEL ===
                         const labelText = CLUSTER_TRANSLATIONS[node.id] || node.id;
                         const sprite = new SpriteText(labelText);
-                        sprite.color = '#ffffff';
-                        sprite.textHeight = 10;
-                        sprite.position.y = coreSize * 2.5 + 5;
+                        sprite.color = '#a0a0a0';
+                        sprite.textHeight = 7;
+                        sprite.position.y = coreSize + 20;
                         sprite.fontFace = 'JetBrains Mono';
-                        sprite.fontWeight = 'bold';
+                        sprite.backgroundColor = 'rgba(0,0,0,0.5)';
+                        sprite.padding = 2;
+                        sprite.borderRadius = 2;
                         group.add(sprite);
 
                     } else if (node.group === 'topic') {
@@ -646,10 +652,12 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
 
                         // === LABEL ===
                         const sprite = new SpriteText(node.id);
-                        sprite.color = '#cccccc';
-                        sprite.textHeight = 4;
-                        sprite.position.y = satSize + 5;
+                        sprite.color = '#909090';
+                        sprite.textHeight = 3;
+                        sprite.position.y = satSize + 6;
                         sprite.fontFace = 'JetBrains Mono';
+                        sprite.backgroundColor = 'rgba(0,0,0,0.4)';
+                        sprite.padding = 1;
                         group.add(sprite);
 
                     } else if (node.group === 'event') {

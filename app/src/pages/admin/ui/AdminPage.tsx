@@ -26,7 +26,7 @@ export const StrategicCommand: React.FC<StrategicCommandProps> = ({ currentView,
             <Suspense fallback={<Loading />}>
                 <div
                     className="flex-1 w-full p-4 grid grid-cols-12 gap-4 relative z-10 overflow-hidden"
-                    style={{ gridTemplateRows: '2fr 1fr 1fr' }}
+                    style={{ gridTemplateRows: '2fr 1fr 1fr 1.5fr' }}
                 >
                     {/* Voronoi Map — Hero (col 1-8, row 1-3) */}
                     <div className="col-span-8 row-span-3">

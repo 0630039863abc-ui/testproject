@@ -140,7 +140,20 @@ interface ComponentProps {
 const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick }) => {
     const { activeZone, setActiveZone, logs, currentUser, getEventsForTopic } = useSimulation();
     const fgRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
     const [activeTopic, setActiveTopic] = useState<string | null>(null);
+
+    // Track container size
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const update = () => setDimensions({ width: el.clientWidth, height: el.clientHeight });
+        update();
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
 
     // Pulse system: store pulse timestamps per cluster
     const clusterPulseTimestamps = useRef<Map<string, number>>(new Map());
@@ -437,9 +450,11 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
     }, [onNodeClick, activeZone, setActiveZone]);
 
     return (
-        <div className="w-full h-full relative bg-black overflow-hidden">
+        <div ref={containerRef} className="w-full h-full relative bg-black overflow-hidden">
             <ForceGraph3D
                 ref={fgRef}
+                width={dimensions.width}
+                height={dimensions.height}
                 graphData={graphData}
                 nodeLabel="id"
                 nodeColor="color"

@@ -117,7 +117,7 @@ const InstancedSparks = ({ count = 200, cells = [] }: { count?: number, cells?: 
     return (
         <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
             <sphereGeometry args={[1, 6, 6]} />
-            <meshStandardMaterial emissiveIntensity={10} transparent />
+            <meshStandardMaterial emissiveIntensity={2} transparent opacity={0.6} />
         </instancedMesh>
     );
 };
@@ -149,12 +149,12 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
             meshRef.current.position.z = THREE.MathUtils.lerp(meshRef.current.position.z, targetZ, 0.15);
             const material = meshRef.current.material as THREE.MeshStandardMaterial;
             if (!active) {
-                const breathing = Math.sin(state.clock.elapsedTime * 1.5 + label.length) * 0.05 + 0.2;
+                const breathing = Math.sin(state.clock.elapsedTime * 1.5 + label.length) * 0.05 + 0.6;
                 material.opacity = breathing;
-                material.emissiveIntensity = breathing * 2;
+                material.emissiveIntensity = breathing * 0.8;
             } else {
                 material.opacity = 0.85;
-                material.emissiveIntensity = 4;
+                material.emissiveIntensity = 1.5;
             }
         }
     });
@@ -176,7 +176,7 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
                 <meshStandardMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={0.5}
+                    emissiveIntensity={0.3}
                     transparent
                     opacity={0.2}
                     side={THREE.DoubleSide}
@@ -205,7 +205,7 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
                 <group position={[centroid[0], centroid[1], 0.2]}>
                     <Text
                         position={[0, 0.4, 0]}
-                        fontSize={0.25}
+                        fontSize={0.22}
                         color="white"
                         anchorX="center"
                         anchorY="middle"
@@ -231,25 +231,19 @@ const VoronoiCell = ({ points, color, label, active, onHover, count, activeZone,
                         anchorY="middle"
                         fillOpacity={0.4}
                     >
-                        EVENTS
+                        СОБЫТИЙ
                     </Text>
                 </group>
             )}
 
             {(active || activeZone === label) && (
                 <Html position={[0, 0, 1.2]} center pointerEvents="none">
-                    <div className={clsx(
-                        "px-3 py-1.5 rounded-sm backdrop-blur-xl border transition-all duration-300",
-                        activeZone === label ? "border-cyan-400 bg-void/60 shadow-[0_0_20px_rgba(34,211,238,0.2)]" : "border-white/10 bg-black/80"
-                    )}>
-                        <div className="text-[11px] font-orbitron font-black text-white uppercase tracking-widest whitespace-nowrap">
+                    <div className="px-3 py-2 rounded-lg bg-zinc-900/95 border border-white/10 backdrop-blur-sm shadow-xl">
+                        <div className="text-[12px] font-semibold text-zinc-100 whitespace-nowrap">
                             {CLUSTER_TRANSLATIONS[label] || label}
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                            <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-cyan-400/50" style={{ width: `${Math.min(100, count / 5)}%` }} />
-                            </div>
-                            <div className="text-[8px] text-cyan-400 font-mono-data uppercase">{Math.round(count)} UNIT</div>
+                        <div className="text-[11px] text-zinc-400 font-mono tabular-nums mt-0.5">
+                            {Math.round(count)} единиц
                         </div>
                     </div>
                 </Html>
@@ -291,8 +285,8 @@ const OptimizedAgents = ({ agents }: { agents: any[] }) => {
                 (agent.isActive || agent.lastAction) && (
                     <Html key={agent.id} position={agent.position} center distanceFactor={15} pointerEvents="none">
                         <div className={clsx(
-                            "px-2 py-0.5 rounded-[1px] text-[7px] font-orbitron font-black uppercase whitespace-nowrap border backdrop-blur-md shadow-lg transition-transform duration-300",
-                            agent.lastAction ? "bg-cyan-500 border-white text-white scale-110" : "bg-black/90 border-white/20 text-white/80"
+                            "px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap border backdrop-blur-sm",
+                            agent.lastAction ? "bg-blue-500/20 border-blue-500/30 text-blue-200" : "bg-black/60 border-white/10 text-zinc-400"
                         )}>
                             {agent.lastAction || agent.name.split(' ')[0]}
                         </div>
@@ -324,17 +318,17 @@ class VoronoiErrorBoundary extends React.Component<{ children: React.ReactNode }
     render() {
         if (this.state.hasError) {
             return (
-                <div className="w-full h-full bg-black flex flex-col items-center justify-center border border-red-500/50 p-4 relative z-50">
+                <div className="w-full h-full bg-[#09090B] flex flex-col items-center justify-center border border-red-500/50 p-4 relative z-50">
                     <Activity className="text-red-500 mb-2 animate-pulse" size={32} />
-                    <h3 className="text-white font-orbitron text-sm uppercase text-center mb-1 tracking-widest">Visual System Failure</h3>
+                    <h3 className="text-white font-semibold text-sm text-center mb-1">Ошибка визуализации</h3>
                     <p className="text-red-400 font-mono text-[10px] max-w-[200px] text-center mb-4 bg-red-900/20 p-2 rounded">
                         {this.state.error?.message || "Unknown WebGL Error"}
                     </p>
                     <button
-                        className="px-3 py-1 bg-red-500/20 border border-red-500 text-red-500 text-[10px] font-orbitron uppercase hover:bg-red-500/40 transition-colors cursor-pointer"
+                        className="px-3 py-1.5 bg-red-500/20 border border-red-500/50 text-red-400 text-[11px] font-medium rounded-md hover:bg-red-500/30 transition-colors cursor-pointer"
                         onClick={() => window.location.reload()}
                     >
-                        Reboot System
+                        Перезагрузить
                     </button>
                     <span className="absolute bottom-2 right-2 text-[8px] text-gray-600 font-mono text-center">
                         ERR_CODE: VORONOI_CRASH_0x1
@@ -471,10 +465,10 @@ const StrategicVoronoiMapContent: React.FC = () => {
 
     if (clusterMetrics.length === 0) {
         return (
-            <div className="w-full h-full bg-black flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Activity className="text-cyan-500/20 animate-pulse" size={40} />
-                    <span className="text-[10px] font-orbitron font-black text-white/20 uppercase tracking-[.8em]">CALIBRATING_SYSTEM</span>
+            <div className="w-full h-full bg-[#09090B] flex items-center justify-center rounded-xl border border-white/[0.06]">
+                <div className="flex flex-col items-center gap-3">
+                    <Activity className="text-zinc-600 animate-pulse" size={24} />
+                    <span className="text-[11px] text-zinc-500 font-medium">Загрузка...</span>
                 </div>
             </div>
         );
@@ -482,22 +476,22 @@ const StrategicVoronoiMapContent: React.FC = () => {
 
     if (activeMetrics.length === 0) {
         return (
-            <div className="w-full h-full bg-void border border-white/5 flex flex-col items-center justify-center gap-4">
-                <div className="text-cyan-500/10"><Activity size={60} strokeWidth={0.5} /></div>
-                <span className="text-white/20 text-[9px] font-orbitron font-black uppercase tracking-widest">Awaiting Active Nodes...</span>
+            <div className="w-full h-full bg-[#09090B] border border-white/[0.06] flex flex-col items-center justify-center gap-3 rounded-xl">
+                <Activity size={24} className="text-zinc-600" strokeWidth={1.5} />
+                <span className="text-[11px] text-zinc-500 font-medium">Нет активных кластеров</span>
             </div>
         );
     }
 
     return (
-        <div className="w-full h-full relative overflow-hidden rounded-xl border border-white/5 bg-black/20">
+        <div className="w-full h-full relative overflow-hidden rounded-xl border border-white/[0.06] bg-[#09090B]">
             {/* Top Right HUD */}
-            <div className="absolute top-6 right-8 z-10 text-right pointer-events-none">
-                <div className="text-[18px] font-orbitron font-black text-white tabular-nums tracking-tighter drop-shadow-lg">
-                    {activeCell ? activeCell.activeUnits.toLocaleString() : '---'}
+            <div className="absolute top-4 right-4 z-10 text-right pointer-events-none">
+                <div className="text-[20px] font-mono font-medium text-zinc-100 tabular-nums tracking-tight">
+                    {activeCell ? activeCell.activeUnits.toLocaleString() : ''}
                 </div>
-                <div className="text-[7px] text-cyan-400/50 uppercase font-orbitron font-black tracking-widest mt-0.5">
-                    {activeCell ? `${CLUSTER_TRANSLATIONS[activeCell.name] || activeCell.name} load` : 'SCANNING_CLUSTER'}
+                <div className="text-[11px] text-zinc-500 tracking-wider mt-0.5">
+                    {activeCell ? (CLUSTER_TRANSLATIONS[activeCell.name] || activeCell.name) : ''}
                 </div>
             </div>
 
@@ -529,46 +523,10 @@ const StrategicVoronoiMapContent: React.FC = () => {
                         {/* Sparks */}
                         <InstancedSparks cells={cells} />
 
-                        {/* Connection to nexus core */}
-                        <gridHelper args={[30, 20]} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.2]}>
-                            <meshBasicMaterial attach="material" color="#22d3ee" transparent opacity={0.02} />
-                        </gridHelper>
-
-                        {/* Decorative Radial Grid */}
-                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.3]}>
-                            <ringGeometry args={[0, 15, 6, 1]} />
-                            <meshBasicMaterial color="#22d3ee" transparent opacity={0.01} wireframe />
-                        </mesh>
                     </group>
                 </Float>
             </Canvas>
 
-            {/* Bottom HUD: Clusters Legend */}
-            <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end pointer-events-none">
-                <div className="flex gap-5">
-                    {activeMetrics.slice(0, 6).map(m => (
-                        <div key={m.name} className="group/item flex flex-col gap-1.5 transition-opacity duration-300" style={{ opacity: !hovered || hovered === m.name ? 1 : 0.2 }}>
-                            <div className="h-0.5 w-8 bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full" style={{ width: '100%', backgroundColor: CLUSTER_COLORS[m.name] }} />
-                            </div>
-                            <span className="text-[7px] font-orbitron font-black text-white/30 uppercase tracking-tighter">
-                                {CLUSTER_TRANSLATIONS[m.name]?.slice(0, 4) || m.name.slice(0, 4)}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="flex flex-col items-end gap-2">
-                    <div className="px-2 py-1 bg-cyan-400/5 border border-cyan-400/20 rounded-[1px] backdrop-blur-md">
-                        <span className="text-[8px] font-orbitron font-black text-cyan-400 uppercase tracking-[0.2em] animate-pulse">
-                            Link_Status: Secure
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Grid Overlay Texture */}
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[radial-gradient(#fff_1px,transparent_1px)] bg-[size:20px_20px]"></div>
         </div>
     );
 };

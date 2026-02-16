@@ -169,8 +169,8 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
     // Animation loop: ring rotation, sinusoidal pulse, and halo breathing
     useEffect(() => {
         const PULSE_DURATION = 800;
-        const BASE_INTENSITY = 3.0;
-        const PULSE_INTENSITY = 8.0;
+        const BASE_INTENSITY = 1.2;
+        const PULSE_INTENSITY = 3.0;
 
         const animate = () => {
             const now = Date.now();
@@ -204,7 +204,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                         const hash = clusterId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
                         const material = core.material as THREE.MeshStandardMaterial;
                         if (material) {
-                            material.emissiveIntensity = BASE_INTENSITY + Math.sin(time * 0.8 + hash) * 0.5;
+                            material.emissiveIntensity = BASE_INTENSITY + Math.sin(time * 0.8 + hash) * 0.2;
                         }
                     }
                 }
@@ -214,7 +214,7 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                 if (halo) {
                     const hash = clusterId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
                     const mat = halo.material as THREE.MeshBasicMaterial;
-                    mat.opacity = 0.08 + Math.sin(time * 0.5 + hash) * 0.03;
+                    mat.opacity = 0.05 + Math.sin(time * 0.5 + hash) * 0.02;
                 }
             });
 
@@ -362,9 +362,9 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
         if (fgRef.current) {
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.8,   // strength (was 0.4)
-                0.4,   // radius (was 0.2)
-                0.6    // threshold (was 0.9)
+                0.35,  // strength
+                0.3,   // radius
+                0.85   // threshold
             );
             fgRef.current.postProcessingComposer().addPass(bloomPass);
             fgRef.current.cameraPosition({ x: 200, y: 150, z: 900 });
@@ -452,14 +452,14 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                                 (core.material as THREE.MeshStandardMaterial).opacity = 0.95;
                                 core.scale.setScalar(1);
                             }
-                            if (halo) (halo.material as THREE.MeshBasicMaterial).opacity = 0.08;
+                            if (halo) (halo.material as THREE.MeshBasicMaterial).opacity = 0.05;
                             return;
                         }
 
                         if (clusterId === node.id) {
                             // Highlight hovered
-                            core?.scale.setScalar(1.3);
-                            if (halo) (halo.material as THREE.MeshBasicMaterial).opacity = 0.25;
+                            core?.scale.setScalar(1.2);
+                            if (halo) (halo.material as THREE.MeshBasicMaterial).opacity = 0.12;
                         } else {
                             // Check if connected
                             const isConnected = graphData.links.some((l: any) => {
@@ -563,9 +563,9 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                         const coreMaterial = new THREE.MeshStandardMaterial({
                             color: node.color,
                             emissive: node.color,
-                            emissiveIntensity: 3.0,
+                            emissiveIntensity: 1.2,
                             metalness: 0.3,
-                            roughness: 0.2,
+                            roughness: 0.4,
                             transparent: true,
                             opacity: 0.95,
                         });
@@ -577,11 +577,11 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                         clusterGroups.current.set(node.id, group);
 
                         // === HALO (atmospheric glow) ===
-                        const haloGeometry = new THREE.SphereGeometry(coreSize * 2.2, 32, 32);
+                        const haloGeometry = new THREE.SphereGeometry(coreSize * 1.8, 32, 32);
                         const haloMaterial = new THREE.MeshBasicMaterial({
                             color: node.color,
                             transparent: true,
-                            opacity: 0.08,
+                            opacity: 0.05,
                             side: THREE.BackSide,
                             blending: THREE.AdditiveBlending,
                             depthWrite: false,
@@ -595,9 +595,8 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                         const ringMaterial = new THREE.MeshBasicMaterial({
                             color: node.color,
                             transparent: true,
-                            opacity: 0.15,
+                            opacity: 0.1,
                             side: THREE.DoubleSide,
-                            blending: THREE.AdditiveBlending,
                             depthWrite: false,
                         });
                         const ring = new THREE.Mesh(ringGeometry, ringMaterial);
@@ -622,9 +621,9 @@ const PersonalKnowledgeGraphComponent: React.FC<ComponentProps> = ({ onNodeClick
                         const satMaterial = new THREE.MeshStandardMaterial({
                             color: node.color,
                             emissive: node.color,
-                            emissiveIntensity: 1.5,
+                            emissiveIntensity: 0.6,
                             metalness: 0.2,
-                            roughness: 0.3,
+                            roughness: 0.4,
                             transparent: true,
                             opacity: 0.85,
                         });
